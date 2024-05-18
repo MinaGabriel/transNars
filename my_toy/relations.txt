@@ -1,0 +1,8 @@
+knows
+likes
+visited
+teaches
+dislikes
+studies
+located_in
+prefers
