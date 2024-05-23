@@ -33,7 +33,7 @@ class TripletsDataset(Dataset):
             'num_relations': len(self.relation_ids)
         }
     
-    def get_dataloader(self, split, batch_size):
+    def get_dataloader(self, split, batch_size=1):
         # TODO: set the shuffle to true to see if this will improve training.
         if split == 'train':
             return DataLoader(self.train_triplets_ids, batch_size, shuffle=False) 

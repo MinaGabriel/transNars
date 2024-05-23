@@ -1,8 +1,7 @@
-
+from tqdm import tqdm
 from negative_sampling import *
 from torch.nn.init import xavier_normal_, xavier_uniform_
 from torch.autograd import Variable
-
 from utils import *
 import pandas as pd
 import numpy as np
@@ -12,11 +11,16 @@ import torch.nn.functional as F
 import os
 import random
 from sklearn.utils import shuffle
+import logging
+
+# Set random seeds for reproducibility
 torch.manual_seed(7)
 random.seed(7)
-torch.manual_seed(7)
 np.random.seed(7)
 
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 class Train:
     def __init__(self, dataset: TripletsDataset, model_name: str, lr: float, embedding_dimension: int, epoch: int):
@@ -37,13 +41,13 @@ class Train:
             weight_decay=0.0  # Weight decay (L2 regularization)
         )
 
-        # print all embedding for testing 
-        print(self.model.entity_embeddings.weight)
+        # print all embedding for testing
+        #print(self.model.entity_embeddings.weight)
         for epoch in range(self.epoch):
             print(f'epoch:{epoch}')
             # FIXME: I am doing one batch
-            for _, positive_batch in enumerate(self.dataset.get_dataloader(split='train', batch_size=3)):
-                
+            for _, positive_batch in enumerate(self.dataset.get_dataloader(split='train', batch_size=25)):
+
                 # get negative batch: random_sampling_r
                 negative_batch = NegativeSampling.random_negative_sampling_r(
                     positive_batch, self.dataset)
@@ -58,14 +62,86 @@ class Train:
                 training_loss = self.model.pairwise_hinge_loss(
                     positive_scores, negative_scores, gamma=1.0)
 
-                print(f"Batch {_+1}: and training loss: {training_loss}")
-                
+                #print(f"Batch {_+1}: and training loss: {training_loss}")
+
                 # This line computes the gradient of the loss with respect to all the parameters
                 training_loss.backward()
                 optimizer.step()
+
+            # Start Validation
+            filter_mrr_h, filter_mrr_t = [], []
+            
+            
+            filter_hit1_h, filter_hit1_t = 0.0, 0.0
+            filter_hit3_h, filter_hit3_t = 0.0, 0.0
+            filter_hit5_h, filter_hit5_t = 0.0, 0.0
+            filter_hit10_h, filter_hit10_t = 0.0, 0.0
+            valid_dataset = self.dataset.get_dataloader(split='valid')
+            
+            for valid_triple in tqdm(valid_dataset):
+                # with validation you get A B C and you try A B C - A B D - A B E etc and get the best A B X
+                valid_triple = valid_triple.squeeze().to(self.model.device)
+                h, r, t = valid_triple[0], valid_triple[1], valid_triple[2]
+
+                heads = h.repeat(self.dataset.config['num_entities'])
+                relations = r.repeat(self.dataset.config['num_entities'])
+                tails = t.repeat(self.dataset.config['num_entities'])
+                entities = torch.arange(self.dataset.config['num_entities'], device=self.model.device)
+
+
+                # Build the <H, R, all entities> tensor
+                triplets = torch.stack((heads, relations, entities), dim=1)
+                tails_predictions = self.model.forward(triplets).squeeze()
+
+                # Build the < all entities, T, R> tensor
+                # Predict heads
+                triplets = torch.stack((entities, relations, tails), dim=1)
+                heads_predictions = self.model.forward(triplets).squeeze()
+
+                indices_tail = torch.argsort(tails_predictions, descending=True)
+                indices_head = torch.argsort(heads_predictions, descending=True)
+
+
+                # Mean Reciprocal Rank (MRR) example: (1 + 1 + 1/3 + 1/2) / 4 = 0.708
+                # computer for both head and tail
+                filter_rank_h = (indices_head == h).nonzero(as_tuple=True)[0].item() + 1
+                filter_rank_t = (indices_tail == t).nonzero(as_tuple=True)[0].item() + 1
+
+                # Mean Reciprocal Rank (MRR)
+                filter_mrr_h.append(1.0 / filter_rank_h)
+                filter_mrr_t.append(1.0 / filter_rank_t)
+                # TODO: see if Mean Rank (MR) is useful in the future
+
+                # Hits@1, Hits@3, Hits@5, Hits@10
+                # tails : hits
+                filter_hit10_t += (indices_tail[:10] == t).sum().item()
+                filter_hit5_t += (indices_tail[:5] == t).sum().item()
+                filter_hit3_t += (indices_tail[:3] == t).sum().item()
+                filter_hit1_t += (indices_tail[:1] == t).sum().item()
+
+                filter_hit10_h += (indices_head[:10] == h).sum().item()
+                filter_hit5_h += (indices_head[:5] == h).sum().item()
+                filter_hit3_h += (indices_head[:3] == h).sum().item()
+                filter_hit1_h += (indices_head[:1] == h).sum().item()
                 
-        # print all embedding for testing 
-        print(self.model.entity_embeddings.weight)
+                
+
+            filter_mrr_t = np.mean(filter_mrr_t)
+            filter_mrr_h = np.mean(filter_mrr_h)
+            filter_mrr = (filter_mrr_h + filter_mrr_t) / 2
+            
+            filtered_hits_at_10 = (filter_hit10_h + filter_hit10_t) / (2 * len(valid_dataset)) * 100
+            filtered_hits_at_5 = (filter_hit5_h + filter_hit5_t) / (2 * len(valid_dataset)) * 100
+            filtered_hits_at_3 = (filter_hit3_h + filter_hit3_t) / (2 * len(valid_dataset)) * 100
+            filtered_hits_at_1 = (filter_hit1_h + filter_hit1_t) / (2 * len(valid_dataset)) * 100
+
+            logger.info(f'epoch:{epoch} Filtered MRR: {filter_mrr:.6f}')
+            logger.info(f'epoch:{epoch} Filtered Hits@1: {filtered_hits_at_1:.6f}')
+            logger.info(f'epoch:{epoch} Filtered Hits@3: {filtered_hits_at_3:.6f}')
+            logger.info(f'epoch:{epoch} Filtered Hits@5: {filtered_hits_at_5:.6f}')
+            logger.info(f'epoch:{epoch} Filtered Hits@10: {filtered_hits_at_10:.6f}')
+             
+ 
 
 class TransE(nn.Module):
     def __init__(self, num_entities, num_relations, embedding_dim):
@@ -93,18 +169,12 @@ class TransE(nn.Module):
         heads = triplets[:, 0].clone().detach().long().to(self.device)
         relations = triplets[:, 1].clone().detach().long().to(self.device)
         tails = triplets[:, 2].clone().detach().long().to(self.device)
-        
-        
-    
+
         # Fetch embeddings for heads, relations, and tails
         head_embeddings = self.entity_embeddings(heads)
         relation_embeddings = self.relation_embeddings(relations)
         tail_embeddings = self.entity_embeddings(tails)
-        
-        assert torch.all(torch.isfinite(head_embeddings)), "NaN or Inf in head embeddings"
-        assert torch.all(torch.isfinite(relation_embeddings)), "NaN or Inf in relation embeddings"
-        assert torch.all(torch.isfinite(tail_embeddings)), "NaN or Inf in tail embeddings"
-        
+
         # Calculate the score using the embedding vectors
         scores = self._calculate_score(
             head_embeddings, relation_embeddings, tail_embeddings)

@@ -8,7 +8,7 @@ def get_parameter():
     parser = argparse.ArgumentParser()
     # expected 5 files inside
     # 1. entities.txt 2. relations.txt 3. test.txt 4. train.txt 5. valid.txt:
-    parser.add_argument('-dataset', default='my_toy', type=str,
+    parser.add_argument('-dataset', default='toy', type=str,
                         help='Dataset name, must be the same as folder name')
     return parser.parse_args()
 
@@ -22,7 +22,7 @@ def main():
         return
 
     dataset = TripletsDataset(dataset_dir)
-    model = Train(dataset, model_name='TransE', lr=0.01, embedding_dimension=2, epoch=5)
+    model = Train(dataset, model_name='TransE', lr=0.01, embedding_dimension=10, epoch=25)
     model.start()
 
 
