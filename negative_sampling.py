@@ -1,6 +1,6 @@
 import numpy as np
-from utils import *
-
+from data.utils import *
+from data import TripletsDataset
 
 class NegativeSampling():
     def __init__(self) -> None:
@@ -26,7 +26,7 @@ class NegativeSampling():
         # how many samples in the batch
         num_samples = negative_batch.shape[0]
         random_entities = np.random.randint(
-            dataset.config['num_entities'], size=num_samples)
+            dataset.num_entities, size=num_samples)
         # if number of samples is 5 we get something like this [0,2,2,0,0]
         entity_indices = np.random.choice([0, 2], size=num_samples)
         # tmp_negative_batch[[0,1,2,3,4,5],[0,2,2,0,0]] = [5,9,13,4,5]

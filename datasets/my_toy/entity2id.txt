@@ -1,0 +1,14 @@
+13
+Alice 0
+Bob 1
+Carol 2
+Dave 3
+Eve 4
+Apple 5
+Banana 6
+Carrot 7
+Paris 8
+London 9
+New_York 10
+Python 11
+Java 12
