@@ -57,30 +57,3 @@ def generate_dictionary(file_path: str) -> dict:
                 print(f"Warning: Line does not contain exactly two elements: {line.strip()}")
     return dictionary
 
-def load_triplets_ids(file_path: str) -> np.ndarray:
-    head = []
-    relation = []
-    tail = []
-
-    with open(file_path, 'r') as file:
-        for line in file:
-            parts = line.strip().split()
-            if len(parts) == 3:
-                # the benchmark dataset is in the form of <subject> <object> <relation>
-                h, t, r = parts
-                head.append(h)
-                relation.append(r)
-                tail.append(t)
-            else:
-                print(f"Warning: Line does not contain exactly three elements: {
-                      line.strip()} in {file_path}")
-
-     # Convert lists to numpy arrays of integers
-    head = np.array(head, dtype=np.int64)
-    relation = np.array(relation, dtype=np.int64)
-    tail = np.array(tail, dtype=np.int64)
-
-    # Stack arrays vertically to form a single array of triplets
-    triplets_array = np.column_stack((head, relation, tail))
-
-    return triplets_array
