@@ -16,13 +16,13 @@ import logging
 
 
 class TransE(nn.Module):
-    def __init__(self, num_entities, num_relations, embedding_dim):
+    def __init__(self, num_entities, num_relations, embedding_dim, device):
         super(TransE, self).__init__()
         self.num_entities = num_entities
         self.num_relations = num_relations
         self.embedding_dim = embedding_dim
-        self.device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
-        self.distance_type = 'l2'
+        self.device = device
+        
 
         self.entity_embeddings = nn.Embedding(
             num_entities, embedding_dim).to(self.device)
@@ -30,6 +30,7 @@ class TransE(nn.Module):
             num_relations, embedding_dim).to(self.device)
         nn.init.xavier_uniform_(self.entity_embeddings.weight)
         nn.init.xavier_uniform_(self.relation_embeddings.weight)
+        
 
     def forward(self, triplets, mode='head_batch'):
         heads = triplets[:, 0].to(self.device)
@@ -57,16 +58,16 @@ class TransE(nn.Module):
 
     def pairwise_hinge_loss(self, positive_scores, negative_scores, gamma):
         negative_scores = negative_scores.view(-1, len(positive_scores)).permute(1,0)
-        criterion = nn.MarginRankingLoss(margin=gamma)
-        target = torch.ones_like(positive_scores)
-        loss = criterion(positive_scores, negative_scores, target)
+        # criterion = nn.MarginRankingLoss(margin=gamma)
+        # target = torch.ones_like(negative_scores)
+        # loss = criterion(positive_scores, negative_scores, target)
         
         # Example will take neg [68024 X 1] and convert it to [25 X 2720]
         # permute to switch the columns and the rows
         # 
 
-        # loss = (torch.max(positive_scores - negative_scores, -
-        #         torch.tensor(gamma))).mean() + torch.tensor(gamma)
+        loss = (torch.max(positive_scores - negative_scores, -
+                torch.tensor(gamma))).mean() + torch.tensor(gamma)
         # print(f"Positive scores: {positive_scores.mean().item()}, Negative scores: {negative_scores.mean().item()}, Loss: {loss.item()}")
         return loss
 

@@ -1,23 +1,13 @@
 import numpy as np
 from data.utils import *
-from data import TripletsDataset
+from data.TripletsDataset import *
 
 class NegativeSampling:
     def __init__(self) -> None:
         pass
 
     @staticmethod
-    def random_negative_sampling_r(positive_batch, dataset: TripletsDataset, negative_ratio=25):
-        """
-        Random sampling : R
-        Args: 
-            positive_batch -> torch tensor
-            dataset -> TripletsDataset 
-            negative_ratio -> int : number of negative samples per positive sample
-        Returns:
-            Numpy array of negative samples:
-            [s, r, o, index of repeated pos sample, 0 or 2 s or o was changed]
-        """
+    def random_negative_sampling_r(positive_batch, dataset: TripletsDataset, negative_ratio=25): 
         
         num_positive_samples = positive_batch.shape[0]
         num_negative_samples = num_positive_samples * negative_ratio
@@ -40,9 +30,15 @@ class NegativeSampling:
 
             negative_samples.add(tuple(negative_batch[i, :3]))
 
-        # Append indices and entity indices for tracking
-        negative_batch = np.column_stack((negative_batch, [i % num_positive_samples for i in range(num_negative_samples)]))
-        negative_batch = np.column_stack((negative_batch, entity_indices))
-
         return negative_batch
 
+def main():
+    dataset_dir = "datasets/FB15K237"
+    dataset = TripletsDataset(dataset_dir)
+    for _, positive_batch in enumerate(DataLoader(dataset.train_dataset, batch_size=256, shuffle=True, num_workers=4)):
+        negative_batch = NegativeSampling.random_negative_sampling_r(positive_batch, dataset)
+        print(negative_batch.shape)
+        print(negative_batch)
+
+if __name__ == "__main__":
+    main()

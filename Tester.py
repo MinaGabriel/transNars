@@ -8,10 +8,13 @@ from prettytable import PrettyTable
 
 
 class Tester(object):
-    def __init__(self):
-        self.dataset = TripletsDataset('datasets/FB15K237')  
-        self.model = TransE(self.dataset.num_entities, self.dataset.num_relations, 200)
-        self.model.load_state_dict(torch.load('TransE_FB15K237.pt', map_location=self.model.device))
+    def __init__(self, name, embedding_dimension, device):
+        self.name = name
+        self.device = device
+        self.embedding_dimension = embedding_dimension
+        self.dataset = TripletsDataset(f'datasets/{name}')  
+        self.model = TransE(self.dataset.num_entities, self.dataset.num_relations, embedding_dimension, 'cuda:0')
+        self.model.load_state_dict(torch.load(f'models/TransE_{name}.pt', map_location=self.model.device))
         self.model.eval() 
         self.size = len(self.dataset.test_dataset.triplets)
         self.table = PrettyTable()
@@ -79,4 +82,4 @@ class Tester(object):
         print(self.table)
 
 if __name__ == "__main__":
-    Tester().run_link_prediction()
+    Tester('FB15K237', 200, device='cuda:0').run_link_prediction()

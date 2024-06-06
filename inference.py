@@ -2,20 +2,20 @@ from TransE import TransE
 import argparse
 from datetime import datetime
 from data.utils import *
-from train import Train
+from Train import Train
 from data.TripletsDataset import *
 
-
-dataset = TripletsDataset('datasets/WN11')
-model = TransE(dataset.num_entities, dataset.num_relations, 200)
+name = 'FB15K237'
+dataset = TripletsDataset(f'datasets/{name}')
+model = TransE(dataset.num_entities, dataset.num_relations, 100)
 
 model.load_state_dict(torch.load(
-    'TransE_WN11.pt', map_location=model.device))
+    f'TransE_{name}.pt', map_location=model.device))
 model.eval()
 
 
-head = '__american_arborvitae_1'
-relation = '_member_holonym'
+head = 'turkmenistan'
+relation = 'locatedin'
 
 head_tensor = torch.tensor([dataset.entity_map[head]] * dataset.num_entities)
 relation_tensor = torch.tensor(
