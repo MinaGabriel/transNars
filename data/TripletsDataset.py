@@ -57,8 +57,7 @@ class TripletsDataset:
                     relation.append(r)
                     tail.append(t)
                 else:
-                    print(f"Warning: Line does not contain exactly three elements: {
-                          line.strip()} in {file_path}")
+                    print(f"Warning: Line does not contain exactly three elements: {line.strip()} in {file_path}")
 
         head = np.array(head, dtype=np.int64)
         relation = np.array(relation, dtype=np.int64)
