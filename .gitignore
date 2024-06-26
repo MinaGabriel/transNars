@@ -1,1 +1,10 @@
 datasets/
+/.idea
+/NARSPython/__pycache__
+/NARSPython/NALGrammar/__pycache__
+/__pycache__
+*.pyc
+*.pyo
+/__pycache__
+__pycache__/train.cpython-312.pyc
+/__pycache__
