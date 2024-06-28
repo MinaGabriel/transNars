@@ -1,4 +1,6 @@
 import numpy as np
+
+from NARSKnowledgeGraph import NARSKnowledgeGraph
 from data.utils import *
 from data.TripletsDataset import *
 import random
@@ -106,7 +108,7 @@ class NegativeSampling:
                 
                 
 if __name__ == "__main__":
-    USE_NARS: bool = False
+    USE_NARS: bool = True
     location = 'datasets/FB15K237'
     file_name = 'neg_sam_n.txt'
     dataset = TripletsDataset(location)
@@ -114,6 +116,13 @@ if __name__ == "__main__":
             dataset.train_dataset,
             batch_size=512, shuffle=False
         )
+
+    NARS = None
+    if USE_NARS:
+        NARS = NARSKnowledgeGraph(dataset_directory=location)
+        NARS.LoadTrainingSet() # store Judgments for all the training set triples
+
+
     all_negative_samples = []
     for _, data in enumerate(tqdm(data_loader, desc="Processing batches")):
         # get batch of negative samples

@@ -16,7 +16,9 @@ class NARSKnowledgeGraph:
 
     def __init__(self, dataset_directory: str):
         self.nodes_dict: dict = {}
-        self.dataset_direction: str = dataset_directory
+        self.dataset_directory: str = dataset_directory
+        self.LoadEntityIDs()
+        self.LoadRelationIDs()
 
     def LoadEntityIDs(self):
         # load all entity IDs
@@ -44,8 +46,9 @@ class NARSKnowledgeGraph:
 
     class Node:
         class NodeType(Enum):
-            Entity = 1,
-            Relation = 2
+            Entity = 1, # KG Entity
+            Relation = 2 # KG Relation
+
         def __init__(self, node_type: NodeType, term: Term):
             self.node_type = node_type
             self.term = term
@@ -83,8 +86,8 @@ class NARSKnowledgeGraph:
                 NAL_predicate_term = NAL_judgment.statement.get_predicate_term()
 
                 # create nodes for the entities if they don't exist
-                if NAL_subject_term not in self.nodes_dict: self.nodes_dict[NAL_subject_term] = self.Node(node_type=self.NodeType.Entity, term=NAL_subject_term)
-                if NAL_predicate_term not in self.nodes_dict: self.nodes_dict[NAL_predicate_term] = self.Node(node_type=self.NodeType.Entity, term=NAL_predicate_term)
+                if NAL_subject_term not in self.nodes_dict: self.nodes_dict[NAL_subject_term] = self.Node(node_type=self.Node.NodeType.Entity, term=NAL_subject_term)
+                if NAL_predicate_term not in self.nodes_dict: self.nodes_dict[NAL_predicate_term] = self.Node(node_type=self.Node.NodeType.Entity, term=NAL_predicate_term)
 
                 self.nodes_dict[NAL_subject_term].sentences_where_node_is_subject.append(NAL_judgment)
                 self.nodes_dict[NAL_predicate_term].sentences_where_node_is_predicate.append(NAL_judgment)
@@ -93,7 +96,7 @@ class NARSKnowledgeGraph:
                 #if relation not in nodes_dict: nodes_dict[relation] = Node(node_type=NodeType.Relation, name=relation)
 
                 i += 1
-                print("Status: " + str(i) + "/" + str(total_lines))
+                print("NARS Training Set Load Status: Loading Triple " + str(i) + "/" + str(total_lines))
                 if NUM_TO_LOAD != -1 and i >= NUM_TO_LOAD: break
 
 
@@ -156,7 +159,6 @@ class NARSKnowledgeGraph:
         # compute a similarity relation
         # now we have 2 sentences with different subjects, but the same predicate, so we compute
         # {J1=<P-->M>,J2=<S-->M>}:- <S<->P> (F'_comparison(j1,j2), aka F_comparison(j2,j1))
-
 
         return results
 
