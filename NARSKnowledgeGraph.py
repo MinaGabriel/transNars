@@ -9,34 +9,45 @@ from NARSPython.NALGrammar.Terms import Term
 import NARSPython.NALInferenceRules
 import NARSPython.NALInferenceRules.Syllogistic
 
-entity_ID_to_name = {}
-relation_ID_to_name = {}
+
 
 class NARSKnowledgeGraph:
 
-    def __init__(self, dataset_directory: str):
-        self.nodes_dict: dict = {}
+    def __init__(self, dataset_directory: str, silent_mode: bool):
+        print("Initializing NARS")
         self.dataset_directory: str = dataset_directory
+        self.silent_mode = silent_mode
+
+        self.nodes_dict: dict = {}
+        self.entity_ID_to_name = {}
+        self.relation_ID_to_name = {}
+        self.entity_name_to_ID = {}
+        self.relation_name_to_ID = {}
+
         self.LoadEntityIDs()
         self.LoadRelationIDs()
 
     def LoadEntityIDs(self):
+        print("Loading Entity IDs into NARS")
         # load all entity IDs
         with open(self.dataset_directory + '/entity2id.txt', encoding="utf8") as f:
             for line in f.readlines():
                 pieces = line.split("	")
                 if len(pieces) == 1: continue # skip the first line
-                name, ID = pieces[0].rstrip(), pieces[1].rstrip()
-                entity_ID_to_name[ID] = name
+                name, ID = self.CleanString(pieces[0].rstrip()), int(pieces[1].rstrip())
+                self.entity_ID_to_name[ID] = name
+                self.entity_name_to_ID[name] = ID
 
     def LoadRelationIDs(self):
+        print("Loading Relation IDs into NARS")
         # load all relation IDs
         with open(self.dataset_directory + '/relation2id.txt', encoding="utf8") as f:
             for line in f.readlines():
                 pieces = line.split("	")
                 if len(pieces) == 1: continue # skip the first line
-                name, ID = pieces[0].rstrip(), pieces[1].rstrip()
-                relation_ID_to_name[ID] = name
+                name, ID = self.CleanString(pieces[0].rstrip()), int(pieces[1].rstrip())
+                self.relation_ID_to_name[ID] = self.CleanString(name)
+                self.relation_name_to_ID[name] = ID
 
     @staticmethod
     def CleanString(dirty_string: str) -> str:
@@ -56,11 +67,10 @@ class NARSKnowledgeGraph:
             self.sentences_where_node_is_predicate: List[NARSPython.NALGrammar.Sentences.Sentence] = []
 
 
-    def LoadTrainingSet(self):
+    def LoadTrainingSet(self, NUM_TO_LOAD = -1):
         # load the training set as Narsese sentences, and also create nodes
-        print("Loading Training Set")
+        print("Loading Training Set into NARS")
         largest_num_of_sentences_with_same_predicate = 0
-        NUM_TO_LOAD = -1 # -1 to load all the training set, any other number to load a certain amount
         total_lines = 1
         with open(self.dataset_directory + '/train2id.txt', encoding="utf8") as f:
             i = 0
@@ -69,17 +79,15 @@ class NARSKnowledgeGraph:
                 if len(pieces) == 1:
                     if NUM_TO_LOAD == -1: total_lines = int(pieces[0])
                     else: total_lines = NUM_TO_LOAD
+                    print("Will load " + str(total_lines) + " triples as Judgments.")
                     continue # skip the first line
                 # turn the numeric IDs into strings
-                subjectID, predicateID, relationID = pieces[0].rstrip(), pieces[1].rstrip(), pieces[2].rstrip()
-                subject, object, relation = entity_ID_to_name[subjectID], entity_ID_to_name[predicateID], relation_ID_to_name[relationID]
-                subject = self.CleanString(str(subject))
-                object = self.CleanString(str(object))
-                relation = self.CleanString(str(relation))
+                subjectID, predicateID, relationID = int(pieces[0].rstrip()), int(pieces[1].rstrip()), int(pieces[2].rstrip())
+                subject, object, relation = self.entity_ID_to_name[subjectID], self.entity_ID_to_name[predicateID], self.relation_ID_to_name[relationID]
 
                 # create NAL belief
                 #NAL_judgment = NARSPython.NALGrammar.Sentences.new_sentence_from_string("<<*," + subject + "," + object + ">-->" + relation + ">.")
-                NAL_judgment = NARSPython.NALGrammar.Sentences.new_sentence_from_string("<" + subject + "-->" + "(/," + relation + ",_," + object + ")>.")
+                NAL_judgment = self.TripletToJudgment(subjectID, predicateID, relationID )
                 #print(NAL_judgment)
 
                 NAL_subject_term = NAL_judgment.statement.get_subject_term()
@@ -96,7 +104,7 @@ class NARSKnowledgeGraph:
                 #if relation not in nodes_dict: nodes_dict[relation] = Node(node_type=NodeType.Relation, name=relation)
 
                 i += 1
-                print("NARS Training Set Load Status: Loading Triple " + str(i) + "/" + str(total_lines))
+                if not self.silent_mode: print("NARS Training Set Load Status: Loading Triple " + str(i) + "/" + str(total_lines))
                 if NUM_TO_LOAD != -1 and i >= NUM_TO_LOAD: break
 
 
@@ -169,6 +177,18 @@ class NARSKnowledgeGraph:
                 return True
         return False
 
+    def TripletToJudgment(self, subjectID: int, objectID: int, relationID: int):
+        subject, object, relation = self.entity_ID_to_name[subjectID], self.entity_ID_to_name[objectID], self.relation_ID_to_name[relationID]
+        return NARSPython.NALGrammar.Sentences.new_sentence_from_string("<" + subject + "-->" + "(/," + relation + ",_," + object + ")>.")
+
+    # put -1 to make it a variable question
+    def TripletToQuestion(self, subjectID: int = -1, objectID: int = -1, relationID: int = -1):
+        subject = self.entity_ID_to_name[subjectID] if subjectID != -1 else "?s"
+        object = self.entity_ID_to_name[objectID] if objectID != -1 else "?o"
+        relation = self.entity_ID_to_name[relationID] if relationID != -1 else "?r"
+
+        return NARSPython.NALGrammar.Sentences.new_sentence_from_string("<" + subject + "-->" + "(/," + relation + ",_," + object + ")>?")
+
     def RunTestSet(self):
         # load the test set as Narsese sentences, and also create nodes
         print("Trying Test Set")
@@ -183,18 +203,15 @@ class NARSKnowledgeGraph:
                     continue # skip the first line
                 # turn the numeric IDs into strings
                 subjectID, predicateID, relationID = pieces[0].rstrip(), pieces[1].rstrip(), pieces[2].rstrip()
-                subject, object, relation = entity_ID_to_name[subjectID], entity_ID_to_name[predicateID], relation_ID_to_name[relationID]
-                subject = self.CleanString(str(subject))
-                object = self.CleanString(str(object))
-                relation = self.CleanString(str(relation))
 
-                ground_truth_answer = NARSPython.NALGrammar.Sentences.new_sentence_from_string("<" + subject + "-->" + "(/," + relation + ",_," + object + ")>.")
+
+                ground_truth_answer = self.TripletToJudgment(subjectID, objectID, relationID)
                 #print(answer)
 
                 question = NARSPython.NALGrammar.Sentences.new_sentence_from_string("< ?x -->" + "(/," + relation + ",_," + object + ")>?")
                 NAL_predicate_term = question.statement.get_predicate_term()
 
-                print(str(line_count) + "/" + str(total_lines) + ": " +  str(question))
+                if not self.silent_mode: print(str(line_count) + "/" + str(total_lines) + ": " +  str(question))
 
 
                 if NAL_predicate_term not in self.nodes_dict:
@@ -211,7 +228,7 @@ class NARSKnowledgeGraph:
                 else:
                     i = 0
                     for result in results:
-                        print(str(i) + "/" + str(len(results)) + ": RESULT : " + str(result))
+                        if not self.silent_mode: print(str(i) + "/" + str(len(results)) + ": RESULT : " + str(result))
 
                         if result.statement == ground_truth_answer.statement:
                             correct_answer_found = True

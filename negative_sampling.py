@@ -68,24 +68,40 @@ class NegativeSampling:
         return negative_samples
 
     @staticmethod
-    def corrupting_positive_instances_NARS(positive_batch, dataset: TripletsDataset, negative_ratio=25):
+    def corrupting_positive_instances_NARS(NARS: NARSKnowledgeGraph, positive_batch, dataset: TripletsDataset, negative_ratio=25):
         num_positive_samples = positive_batch.shape[0]
         num_negative_samples = num_positive_samples * negative_ratio
 
         negative_samples = []
         for h, r, t in positive_batch:
-            h, r, t = h.item(), r.item(), t.item()
-            for _ in range(negative_ratio//2):
-                #NOTE: r at the end to save to file as preprocessing step
-                # Corrupt the head
-                corrupted_h = random.choice(dataset.get_all_entity_ids())
-                if (t in dataset.all_possible_hs and r in dataset.all_possible_hs[t]) and corrupted_h not in dataset.all_possible_hs[t][r]:
-                    negative_samples.append((corrupted_h, t, r))
+            h, r, t = h.item(), r.item(), t.item() # item from training set
+            question_what_is_subject = NARS.TripletToQuestion(-1,t,r)
+            judgment_results = NARS.DeriveAnswers(question_what_is_subject)
+            if judgment_results is not None:
+                for i in range(negative_ratio//2):
+                    if i >= len(judgment_results): break
+                    judgment = judgment_results[i]
+                    #NOTE: r at the end to save to file as preprocessing step
+                    # Corrupt the head
+                    corrupted_h = NARS.entity_name_to_ID[str(judgment.statement.get_subject_term())]
+                    if (t in dataset.all_possible_hs and r in dataset.all_possible_hs[t]) and corrupted_h not in dataset.all_possible_hs[t][r]:
+                        negative_samples.append((corrupted_h, t, r))
+
+            question_what_is_object = NARS.TripletToQuestion(h, -1, r)
+            judgment_results = NARS.DeriveAnswers(question_what_is_object)
+            if judgment_results is not None:
+                for i in range(negative_ratio // 2):
+                    if i >= len(judgment_results): break
+                    judgment = judgment_results[i]
+                    # NOTE: r at the end to save to file as preprocessing step
+                    # Corrupt the head
+                    corrupted_t = NARS.entity_name_to_ID[str(judgment.statement.get_predicate_term())]
+                    if h in dataset.all_possible_ts and r in dataset.all_possible_ts[h] and corrupted_t not in \
+                            dataset.all_possible_ts[h][r]:
+                        negative_samples.append((h, corrupted_t, r))
 
                 # Corrupt the tail
-                corrupted_t = random.choice(dataset.get_all_entity_ids())
-                if h in dataset.all_possible_ts and r in dataset.all_possible_ts[h] and corrupted_t not in dataset.all_possible_ts[h][r]:
-                    negative_samples.append((h, corrupted_t, r))
+
 
         negative_samples = np.array(negative_samples, dtype=np.int64)
         if len(negative_samples) > num_negative_samples and len(negative_samples) > 0:
@@ -109,7 +125,7 @@ class NegativeSampling:
                 
 if __name__ == "__main__":
     USE_NARS: bool = True
-    location = 'datasets/FB15K237'
+    location = 'datasets/YAGO3-10'
     file_name = 'neg_sam_n.txt'
     dataset = TripletsDataset(location)
     data_loader = DataLoader(
@@ -119,19 +135,24 @@ if __name__ == "__main__":
 
     NARS = None
     if USE_NARS:
-        NARS = NARSKnowledgeGraph(dataset_directory=location)
-        NARS.LoadTrainingSet() # store Judgments for all the training set triples
+        NARS = NARSKnowledgeGraph(dataset_directory=location, silent_mode=True)
+        NARS.LoadTrainingSet(50000) # store Judgments for all the training set triples
+        #NARS.RunTestSet()
 
 
     all_negative_samples = []
     for _, data in enumerate(tqdm(data_loader, desc="Processing batches")):
         # get batch of negative samples
-        if USE_NARS: negative_samples = NegativeSampling.corrupting_positive_instances_NARS(data, dataset)
+        if USE_NARS: negative_samples = NegativeSampling.corrupting_positive_instances_NARS(NARS, data, dataset)
         else: negative_samples = NegativeSampling.corrupting_positive_instances_c(data, dataset)
+        if len(negative_samples) == 0: continue
         # append batch of negative samples to total list of negative samples
         negative_samples[[1, 2]] = negative_samples[[2, 1]]
         all_negative_samples.append(negative_samples)
-        
-    all_negative_samples = np.vstack(all_negative_samples) 
-    NegativeSampling.save_negative_samples_to_file(all_negative_samples, location + '/' + file_name, len(all_negative_samples))
+
+    if len(all_negative_samples) == 0:
+        print("No negative samples were generated. Exiting...")
+    else:
+        all_negative_samples = np.vstack(all_negative_samples)
+        NegativeSampling.save_negative_samples_to_file(all_negative_samples, location + '/' + file_name, len(all_negative_samples))
     

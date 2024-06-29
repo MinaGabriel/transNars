@@ -50,7 +50,7 @@ class TripletsDataset:
 
         with open(file_path, 'r') as file:
             for line in file:
-                parts = line.strip().split()
+                parts = line.split(" ")
                 if len(parts) == 3:
                     h, t, r = parts
                     head.append(h)
