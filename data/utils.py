@@ -42,7 +42,7 @@ takes a file_path and returns a dictionary of {"entity_name": entity_id} or {"re
 """
 def generate_dictionary(file_path: str) -> dict:
     dictionary = {}
-    with open(file_path, 'r') as file:
+    with open(file_path, 'r', encoding='utf-8') as file:
         for line in file:
             # Use regex to split based on any sequence of whitespace
             parts = re.split(r'\s+', line.strip())
