@@ -13,12 +13,12 @@ def get_parameter():
     # 1. entity2id.txt 2. relation2id.txt 3. train2id.txt 4. test2id.txt 5. valid2id.txt
     parser.add_argument('-dataset', default='datasets/FB15K237', type=str, help='Dataset directory')
     parser.add_argument('-epoch', default=100, type=int, help="Number of epochs")
-    parser.add_argument('-lr', default=0.1, type=float, help="Learning rate")
+    parser.add_argument('-lr', default=0.01, type=float, help="Learning rate")
     parser.add_argument('-model', default="TransE", type=str, help="Knowledge graph embedding model")
-    parser.add_argument('-dim', default=64, type=int, help="Embedding dimension")
+    parser.add_argument('-dim', default=200, type=int, help="Embedding dimension")
     parser.add_argument('-neg_sample', default="c", type=str, help="Negative samples algorithm")
     parser.add_argument('-neg_ratio', default=25, type=int, help="Negative sampling ratio")
-    parser.add_argument('-batch_size', default=1024, type=int, help="Batch size")
+    parser.add_argument('-batch_size', default=512, type=int, help="Batch size")
     parser.add_argument('-device', default="cuda:0" if torch.cuda.is_available() else "cpu", type=str, help="Device to use (cpu|cuda:0)")
 
     args = parser.parse_args()

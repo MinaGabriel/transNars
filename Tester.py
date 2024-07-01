@@ -7,6 +7,7 @@ import numpy as np
 from prettytable import PrettyTable
 import logging
 import time
+from torch.autograd import Variable
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -46,7 +47,7 @@ class Tester(object):
 
         data_loader = DataLoader(
             self.dataset.test_dataset,
-            batch_size=52,
+            batch_size=4,
             shuffle=False,
             num_workers=20,
             pin_memory=True,
@@ -138,4 +139,4 @@ class Tester(object):
         logger.info(f"Total run time: {int(minutes)} minutes and {int(seconds)} seconds")
 
 if __name__ == "__main__":
-    Tester('FB15K237', 64, device='cuda:0').run_link_prediction()
+    Tester('nations', 125, device='cuda:0').run_link_prediction()

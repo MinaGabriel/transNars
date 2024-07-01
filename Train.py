@@ -33,12 +33,15 @@ if torch.cuda.is_available():
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+
 class Train:
-    def __init__(self, dataset: TripletsDataset, negative_dataset: NegativeDataset, model_name: str, lr: float, embedding_dimension: int, epoch: int, batch_size=256, device='cpu', neg_ratio=25):
+    def __init__(self, dataset: TripletsDataset, negative_dataset: NegativeDataset, model_name: str, lr: float,
+                 embedding_dimension: int, epoch: int, batch_size=256, device='cpu', neg_ratio=25):
         self.dataset = dataset
         self.negative_dataset = negative_dataset
         self.lr = lr
-        self.device = torch.device(device if torch.cuda.is_available() else 'cpu')
+        self.device = torch.device(
+            device if torch.cuda.is_available() else 'cpu')
         self.batch_size = batch_size
         self.gamma = 6.0
         self.lambda_reg = 0.1
@@ -64,23 +67,27 @@ class Train:
         for epoch in training_range:
             total_loss = 0.0
             num_batches = 0
-             
-            for _, positive_batch in enumerate(DataLoader(self.dataset.train_dataset, batch_size=self.batch_size, shuffle=True, num_workers=4)):
+
+            for _, positive_batch in enumerate(DataLoader(self.dataset.train_dataset, 
+                                                          batch_size=self.batch_size, shuffle=True, num_workers=4)):
                 start_neg = num_batches * self.batch_size * self.neg_ratio
                 end_neg = (num_batches + 1) * self.batch_size * self.neg_ratio
-                negative_batch = self.negative_dataset[start_neg: end_neg].to(self.device)
+                negative_batch = self.negative_dataset[start_neg: end_neg]
 
                 optimizer.zero_grad()
 
                 positive_scores = self.model(positive_batch.to(self.device))
-                negative_scores = self.model(negative_batch)
+                negative_scores = self.model(negative_batch.to(self.device))
 
                 training_loss = self.model.pairwise_hinge_loss(
                     positive_scores, negative_scores, self.gamma)
 
-                heads = positive_batch[:, 0].to(self.device)
-                relations = positive_batch[:, 1].to(self.device)
-                tails = positive_batch[:, 2].to(self.device)
+                stacked_batch = torch.vstack((positive_batch, negative_batch)).to(
+                    self.device)
+                
+                heads = stacked_batch[:, 0].to(self.device)
+                relations = stacked_batch[:, 1].to(self.device)
+                tails = stacked_batch[:, 2].to(self.device)
                 reg_loss = self.model.regularization_loss(
                     heads, relations, tails)
 
@@ -104,7 +111,8 @@ class Train:
             if validation_loss < self.best_loss:
                 self.best_loss = validation_loss
                 torch.save(self.model.state_dict(), self.best_model_path)
-                logger.info(f"New best model saved with validation loss {validation_loss:.4f}")
+                logger.info(f"New best model saved with validation loss {
+                            validation_loss:.4f}")
 
         self.report_training(epoch_losses, validation_losses)
 
@@ -115,8 +123,10 @@ class Train:
 
         with torch.no_grad():
             for _, positive_batch in enumerate(DataLoader(self.dataset.valid_dataset, batch_size=self.batch_size, shuffle=False, num_workers=4)):
-                negative_batch = NegativeSampling.random_negative_sampling_r(positive_batch, self.dataset, self.neg_ratio)
-                negative_batch = torch.from_numpy(negative_batch).to(self.device)
+                negative_batch = NegativeSampling.random_negative_sampling_r(
+                    positive_batch, self.dataset, self.neg_ratio)
+                negative_batch = torch.from_numpy(
+                    negative_batch).to(self.device)
 
                 positive_scores = self.model(positive_batch.to(self.device))
                 negative_scores = self.model(negative_batch)
@@ -142,7 +152,8 @@ class Train:
         logger.info(f"Total epochs: {self.epoch}")
         logger.info(f"Final training loss: {epoch_losses[-1]:.4f}")
         logger.info(f"Final validation loss: {validation_losses[-1]:.4f}")
-        logger.info(f"Best model saved at: {self.best_model_path} with loss: {self.best_loss:.4f}")
+        logger.info(f"Best model saved at: {
+                    self.best_model_path} with loss: {self.best_loss:.4f}")
 
         epochs = range(1, self.epoch + 1)
         plt.figure(figsize=(10, 6))
@@ -153,6 +164,7 @@ class Train:
         plt.title('Training vs. Validation Loss')
         plt.legend()
         plt.grid(True)
-        
-        plt.savefig(os.path.join(os.getcwd(), 'training_vs_validation_loss.png'))
+
+        plt.savefig(os.path.join(
+            os.getcwd(), 'training_vs_validation_loss.png'))
         plt.close()

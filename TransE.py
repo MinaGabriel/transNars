@@ -49,25 +49,25 @@ class TransE(nn.Module):
         h = F.normalize(h, 2, -1)
         r = F.normalize(r, 2, -1)
         t = F.normalize(t, 2, -1)
+        # TODO:"need to consider (score = h + (r - t)) for head prediction"
         if mode == 'head_batch':
             score = h + (r - t)
         else:
             score = (h + r) - t
-        score = torch.norm(score, p=1, dim=-1)
-        return -score
+        return torch.norm(score, p=1, dim=-1)
 
     def pairwise_hinge_loss(self, positive_scores, negative_scores, gamma):
         negative_scores = negative_scores.view(-1, len(positive_scores)).permute(1,0)
-        criterion = nn.MarginRankingLoss(margin=gamma)
-        target = torch.ones_like(negative_scores)
-        loss = criterion(positive_scores, negative_scores, target)
+        # criterion = nn.MarginRankingLoss(margin=gamma)
+        # target = torch.ones_like(negative_scores)
+        # loss = criterion(positive_scores, negative_scores, target)
         
         # Example will take neg [68024 X 1] and convert it to [25 X 2720]
         # permute to switch the columns and the rows
         # 
 
-        # loss = (torch.max(positive_scores - negative_scores, -
-        #         torch.tensor(gamma))).mean() + torch.tensor(gamma)
+        loss = (torch.max(positive_scores - negative_scores, -
+                torch.tensor(gamma))).mean() + torch.tensor(gamma)
         # print(f"Positive scores: {positive_scores.mean().item()}, Negative scores: {negative_scores.mean().item()}, Loss: {loss.item()}")
         return loss
 

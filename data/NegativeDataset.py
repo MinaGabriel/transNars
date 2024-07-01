@@ -6,6 +6,7 @@ import torch
 import os
 from data.utils import *
 import logging
+from torch import Tensor
 
 
 class NegativeDataset(Dataset):

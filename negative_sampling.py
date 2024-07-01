@@ -73,17 +73,16 @@ class NegativeSampling:
                 
                 
 if __name__ == "__main__":
-    location = 'datasets/nations'
-    file_name = 'neg_sam_n.txt'
+    location = 'datasets/WN11'
+    file_name = 'neg_sam_c.txt'
     dataset = TripletsDataset(location)
     data_loader = DataLoader(
             dataset.train_dataset,
-            batch_size=512, shuffle=False
+            batch_size=1024, shuffle=False
         )
     all_negative_samples = []
     for _, data in enumerate(tqdm(data_loader, desc="Processing batches")):
         negative_samples = NegativeSampling.corrupting_positive_instances_c(data, dataset)
-        negative_samples[[1, 2]] = negative_samples[[2, 1]]
         all_negative_samples.append(negative_samples)
         
     all_negative_samples = np.vstack(all_negative_samples) 
