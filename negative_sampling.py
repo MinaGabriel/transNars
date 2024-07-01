@@ -76,7 +76,7 @@ class NegativeSampling:
         for h, r, t in positive_batch:
             h, r, t = h.item(), r.item(), t.item() # item from training set
             question_what_is_subject = NARS.TripletToQuestion(-1,t,r)
-            judgment_results = NARS.DeriveAnswers(question_what_is_subject)
+            judgment_results = NARS.DeriveAnswers(question_what_is_subject,negative_ratio//2)
             if judgment_results is not None:
                 for i in range(negative_ratio//2):
                     if i >= len(judgment_results): break
@@ -88,7 +88,7 @@ class NegativeSampling:
                         negative_samples.append((corrupted_h, t, r))
 
             question_what_is_object = NARS.TripletToQuestion(h, -1, r)
-            judgment_results = NARS.DeriveAnswers(question_what_is_object)
+            judgment_results = NARS.DeriveAnswers(question_what_is_object,negative_ratio//2)
             if judgment_results is not None:
                 for i in range(negative_ratio // 2):
                     if i >= len(judgment_results): break
@@ -136,7 +136,7 @@ if __name__ == "__main__":
     NARS = None
     if USE_NARS:
         NARS = NARSKnowledgeGraph(dataset_directory=location, silent_mode=True)
-        NARS.LoadTrainingSet(50000) # store Judgments for all the training set triples
+        NARS.LoadTrainingSet(10000) # store Judgments for all the training set triples
         #NARS.RunTestSet()
 
 

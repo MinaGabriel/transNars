@@ -113,7 +113,9 @@ class NARSKnowledgeGraph:
             self.nodes_dict[result.statement.get_predicate_term()].sentences_where_node_is_predicate.append(result)
             self.nodes_dict[result.statement.get_subject_term()].sentences_where_node_is_subject.append(result)
 
-    def DeriveAnswers(self, question: NARSPython.NALGrammar.Sentences.Question):
+    def DeriveAnswers(self, question: NARSPython.NALGrammar.Sentences.Question, negative_ratio=1000):
+        if negative_ratio <= 0: print("error")
+
         results = []
 
         # first, get a known answer (either from the knowledge graph, or potentially derived)
@@ -123,13 +125,13 @@ class NARSKnowledgeGraph:
         # random_answer_idx = random.randrange(0,num_of_answers)
         # random_answer = nodes_dict[question_predicate].sentences_where_node_is_predicate[random_answer_idx]
 
-        MAX_ANSWERS = 10
+        MAX_ANSWERS = negative_ratio**(1./3.) + 1
         answers = 0
         for answer in self.nodes_dict[question_predicate].sentences_where_node_is_predicate:
             # from the answer's subject, get another statement with the same subject but a different predicate/relation
             answer_subject = answer.statement.get_subject_term()
 
-            MAX_RELATIONS = 10
+            MAX_RELATIONS = negative_ratio**(1./3.) + 1
             relations = 0
             for sentence_with_new_relation in self.nodes_dict[answer_subject].sentences_where_node_is_subject:
                 if sentence_with_new_relation.statement == answer.statement: continue
@@ -144,7 +146,7 @@ class NARSKnowledgeGraph:
                 #     random_other_idx -= 1
                 #     random_other = nodes_dict[random_relation_predicate].sentences_where_node_is_predicate[random_other_idx]
 
-                MAX_DERIVATIONS = 10
+                MAX_DERIVATIONS = negative_ratio**(1./3.) + 1
                 derivations = 0
 
                 for other_subject in self.nodes_dict[sentence_with_new_relation.statement.get_predicate_term()].sentences_where_node_is_predicate:
@@ -158,12 +160,12 @@ class NARSKnowledgeGraph:
                     self.AddResultToKnowledgeBase(result)
                     results.append(result)
                     derivations += 1
-                    if derivations == MAX_DERIVATIONS: break
+                    if derivations >= MAX_DERIVATIONS: break
 
                 relations += 1
-                if relations == MAX_RELATIONS: break
+                if relations >= MAX_RELATIONS: break
             answers += 1
-            if answers == MAX_ANSWERS: break
+            if answers >= MAX_ANSWERS: break
         # compute a similarity relation
         # now we have 2 sentences with different subjects, but the same predicate, so we compute
         # {J1=<P-->M>,J2=<S-->M>}:- <S<->P> (F'_comparison(j1,j2), aka F_comparison(j2,j1))
@@ -185,7 +187,7 @@ class NARSKnowledgeGraph:
     def TripletToQuestion(self, subjectID: int = -1, objectID: int = -1, relationID: int = -1):
         subject = self.entity_ID_to_name[subjectID] if subjectID != -1 else "?s"
         object = self.entity_ID_to_name[objectID] if objectID != -1 else "?o"
-        relation = self.entity_ID_to_name[relationID] if relationID != -1 else "?r"
+        relation = self.relation_ID_to_name[relationID] if relationID != -1 else "?r"
 
         return NARSPython.NALGrammar.Sentences.new_sentence_from_string("<" + subject + "-->" + "(/," + relation + ",_," + object + ")>?")
 
@@ -203,7 +205,6 @@ class NARSKnowledgeGraph:
                     continue # skip the first line
                 # turn the numeric IDs into strings
                 subjectID, predicateID, relationID = pieces[0].rstrip(), pieces[1].rstrip(), pieces[2].rstrip()
-
 
                 ground_truth_answer = self.TripletToJudgment(subjectID, objectID, relationID)
                 #print(answer)
