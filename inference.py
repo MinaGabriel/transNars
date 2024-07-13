@@ -1,7 +1,7 @@
 from TransE import TransE
 import torch
 from prettytable import PrettyTable
-from data.TripletsDataset import TripletsDataset
+from data.Loader import TripletsDataset
 
 name = 'nations'
 dataset = TripletsDataset(f'datasets/{name}')

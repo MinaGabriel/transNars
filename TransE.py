@@ -1,6 +1,5 @@
 
-from tqdm import tqdm
-from negative_sampling import *
+from tqdm import tqdm 
 from torch.nn.init import xavier_normal_, xavier_uniform_
 from torch.autograd import Variable
 from data.utils import *
@@ -32,14 +31,11 @@ class TransE(nn.Module):
         nn.init.xavier_uniform_(self.relation_embeddings.weight)
         
 
-    def forward(self, triplets, mode='head_batch'):
-        heads = triplets[:, 0].to(self.device)
-        relations = triplets[:, 1].to(self.device)
-        tails = triplets[:, 2].to(self.device)
+    def forward(self, heads, relations,tails, mode='head_batch'): 
 
-        head_embeddings = self.entity_embeddings(heads)
-        relation_embeddings = self.relation_embeddings(relations)
-        tail_embeddings = self.entity_embeddings(tails)
+        head_embeddings = self.entity_embeddings(heads.to(self.device))
+        relation_embeddings = self.relation_embeddings(relations.to(self.device))
+        tail_embeddings = self.entity_embeddings(tails.to(self.device))
 
         scores = self._calculate_score(
             head_embeddings, relation_embeddings, tail_embeddings, mode)

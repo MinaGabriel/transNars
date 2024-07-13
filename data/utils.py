@@ -37,23 +37,3 @@ def check_folder_and_files(folder_path):
         return True
     
 
-"""
-takes a file_path and returns a dictionary of {"entity_name": entity_id} or {"relation_name": relation_id}
-"""
-def generate_dictionary(file_path: str) -> dict:
-    dictionary = {}
-    with open(file_path, 'r', encoding='utf-8') as file:
-        for line in file:
-            # Use regex to split based on any sequence of whitespace
-            parts = re.split(r'\s+', line.strip())
-            if len(parts) == 2:
-                value, id = parts
-                try:
-                    id = int(id)
-                    dictionary[value] = id
-                except ValueError:
-                    print(f"Warning: ID is not an integer in line: {line.strip()}")
-            else:
-                print(f"Warning: Line does not contain exactly two elements: {line.strip()}")
-    return dictionary
-

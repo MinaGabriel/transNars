@@ -2,7 +2,7 @@ import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from TransE import TransE
-from data.TripletsDataset import TripletsDataset
+from data.Loader import TripletsDataset
 import numpy as np
 from prettytable import PrettyTable
 import logging
@@ -47,7 +47,7 @@ class Tester(object):
 
         data_loader = DataLoader(
             self.dataset.test_dataset,
-            batch_size=4,
+            batch_size=8,
             shuffle=False,
             num_workers=20,
             pin_memory=True,
@@ -75,7 +75,8 @@ class Tester(object):
             entities = entities.repeat(len(h))
 
             # Head prediction
-            triplets_h, scores_h = self.test_head(entities, relations, tails)
+            triplets_h, scores_h = self.test_head(entities, relations, tails) 
+            scores_h = scores_h * -1
             sorted_scores_h, sorted_indices_h = torch.sort(scores_h.view(len(h), num_entities), descending=True)
             
             
@@ -90,7 +91,8 @@ class Tester(object):
                 hits_at_k[k][0] += (sorted_indices_h[:, :k] == h_expanded[:, :k]).sum().item()
 
             # Tail prediction
-            triplets_tail, scores_t = self.test_tail(heads, relations, entities)
+            triplets_tail, scores_t = self.test_tail(heads, relations, entities) 
+            scores_t = scores_t * -1
             sorted_scores_t, sorted_indices_t = torch.sort(scores_t.view(len(t), num_entities), descending=True)
 
             # Vectorized ranking
@@ -132,11 +134,12 @@ class Tester(object):
         hits_3 = (hits_at_k[3][0] + hits_at_k[3][1]) / (2 * self.size)
         hits_10 = (hits_at_k[10][0] + hits_at_k[10][1]) / (2 * self.size)
 
-        self.table.add_row(["Average (Raw)     ", f'{raw_mrr:.6f}', f'{raw_mr:.6f}', f'{hits_10:.6f}', f'{hits_3:.6f}', f'{hits_1:.6f}'])
+        self.table.add_row(["Average (Raw)     ", f'{raw_mrr:.6f}', f'{raw_mr:.6f}', f'{
+                           hits_10:.6f}', f'{hits_3:.6f}', f'{hits_1:.6f}'])
 
 
         print(self.table)
         logger.info(f"Total run time: {int(minutes)} minutes and {int(seconds)} seconds")
 
 if __name__ == "__main__":
-    Tester('nations', 125, device='cuda:0').run_link_prediction()
+    Tester('FB15K237', 200, device='cuda:0').run_link_prediction()

@@ -1,0 +1,1 @@
+g++ -shared -o ./Base.so -fPIC ./base/Base.cpp  
