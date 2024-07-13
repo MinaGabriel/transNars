@@ -13,7 +13,7 @@ def get_parameter():
     parser = argparse.ArgumentParser()
     # Expected 5 files inside the dataset directory:
     # 1. entity2id.txt 2. relation2id.txt 3. train2id.txt 4. test2id.txt 5. valid2id.txt
-    parser.add_argument('-dataset', default='./datasets/YAGO3-10/', type=str, help='Dataset directory')
+    parser.add_argument('-dataset', default='./datasets/benchmarks/FB15K237/', type=str, help='Dataset directory')
     parser.add_argument('-epoch', default=100, type=int, help="Number of epochs")
     parser.add_argument('-lr', default=0.01, type=float, help="Learning rate")
     parser.add_argument('-model', default="TransE", type=str, help="Knowledge graph embedding model")
