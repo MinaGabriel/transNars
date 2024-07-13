@@ -1,15 +1,24 @@
 #include "Globals.h"
 #include "Train.h"
 #include "Test.h"
-
+#include "Valid.h"
 extern "C" void testDataLoader(char *path, INT *batch_h, INT *batch_t, INT *batch_r){
     inPath = path;
     relationTotal = readFirstLine(inPath + "relation2id.txt");
     entityTotal = readFirstLine(inPath + "entity2id.txt");
     importTestFiles(batch_h, batch_t, batch_r);
-    std::cout << "C++ Training Done!" << std::endl; 
+    std::cout << "C++ Training Data Done!" << std::endl; 
 
 }
+
+
+extern "C" void validDataLoader(char *path, INT *batch_h, INT *batch_t, INT *batch_r){
+    inPath = path;
+    importValidFile(batch_h, batch_t, batch_r);
+    std::cout << "C++ Validation Data Done!" << std::endl; 
+
+}
+
 
 extern "C" void trainDataLoader(char *path, INT *batch_h, INT *batch_t, INT *batch_r, REAL *batch_y, INT neg_ratio)
 {

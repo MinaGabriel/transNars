@@ -46,6 +46,7 @@ class TransE(nn.Module):
         r = F.normalize(r, 2, -1)
         t = F.normalize(t, 2, -1)
         # TODO:"need to consider (score = h + (r - t)) for head prediction"
+        # FIXME: I think mode doesn't matter
         if mode == 'head_batch':
             score = h + (r - t)
         else:
@@ -62,8 +63,7 @@ class TransE(nn.Module):
         # permute to switch the columns and the rows
         # 
 
-        loss = (torch.max(positive_scores - negative_scores, -
-                torch.tensor(gamma))).mean() + torch.tensor(gamma)
+        loss = (torch.max(positive_scores - negative_scores, - torch.tensor(gamma))).mean() + torch.tensor(gamma)
         # print(f"Positive scores: {positive_scores.mean().item()}, Negative scores: {negative_scores.mean().item()}, Loss: {loss.item()}")
         return loss
 

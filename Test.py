@@ -49,14 +49,14 @@ class Test:
         self.lib.testHead.argtypes = [ctypes.c_void_p, ctypes.c_int64]  
         self.lib.testTail.argtypes = [ctypes.c_void_p, ctypes.c_int64]    
 
-    def test_head(self, e, r, t):
+    def test_head(self, e, r, t, mode):
         # FIXME: but mode head or tail 
-        scores = self.model(e, r, t)
+        scores = self.model(e, r, t, mode)
         return scores
 
-    def test_tail(self, h, r, e):
+    def test_tail(self, h, r, e, mode):
         # FIXME: but mode head or tail 
-        scores = self.model(h, r, e)
+        scores = self.model(h, r, e, mode)
         return scores
 
     def run_link_prediction(self):
@@ -78,11 +78,11 @@ class Test:
             entities = torch.arange(num_entities, device=self.device)
             entities = entities.repeat(len(h))
 
-            scores_h = self.test_head(entities, relations, tails)
+            scores_h = self.test_head(entities, relations, tails, "head_batch")
             score = scores_h.squeeze().detach().cpu().numpy()
             self.lib.testHead(score.__array_interface__["data"][0], _)
 
-            scores_t = self.test_tail(heads, relations, entities)
+            scores_t = self.test_tail(heads, relations, entities, "tail_batch")
             score = scores_t.squeeze().detach().cpu().numpy()
             self.lib.testTail(score.__array_interface__["data"][0], _)
 
@@ -91,12 +91,14 @@ class Test:
             
 
             
+#  loader = Loader(dataset_dir, neg_sample,
+#                     epoch, lr, model, dim, neg_ratio, 
+#                     batch_size, device)
 
 
 # Example usage
 if __name__ == "__main__":
-    loader = Loader("./datasets/FB15K237/", "c", 100,
-                    0.01, "TransE", 200, 25, 1, "cuda:0")
+    loader = Loader("./datasets/benchmarks/WN18/", "c", 75, 0.01, "TransE", 50, 75, 1, "cuda:0")
     print(loader.name)
     test_dataloader = TestDataLoader(loader)
   

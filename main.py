@@ -13,14 +13,14 @@ def get_parameter():
     parser = argparse.ArgumentParser()
     # Expected 5 files inside the dataset directory:
     # 1. entity2id.txt 2. relation2id.txt 3. train2id.txt 4. test2id.txt 5. valid2id.txt
-    parser.add_argument('-dataset', default='./datasets/benchmarks/FB15K237/', type=str, help='Dataset directory')
+    parser.add_argument('-dataset', default='./datasets/benchmarks/WN18/', type=str, help='Dataset directory')
     parser.add_argument('-epoch', default=100, type=int, help="Number of epochs")
-    parser.add_argument('-lr', default=0.01, type=float, help="Learning rate")
+    parser.add_argument('-lr', default=0.01, type=float, help="λ: Learning rate")
     parser.add_argument('-model', default="TransE", type=str, help="Knowledge graph embedding model")
-    parser.add_argument('-dim', default=200, type=int, help="Embedding dimension")
+    parser.add_argument('-dim', default=50, type=int, help="K: Embedding dimension")
     parser.add_argument('-neg_sample', default="c", type=str, help="Negative samples algorithm")
     parser.add_argument('-neg_ratio', default=25, type=int, help="Negative sampling ratio")
-    parser.add_argument('-batch_size', default=512, type=int, help="Batch size")
+    parser.add_argument('-batch_size', default=75, type=int, help="Batch size")
     parser.add_argument('-device', default="cuda:0" if torch.cuda.is_available() else "cpu", type=str, help="Device to use (cpu|cuda:0)")
 
     args = parser.parse_args()
@@ -61,9 +61,9 @@ def main():
     logger.info(f"Dataset directory: {dataset_dir}")
     logger.info(f"Negative Sample: {neg_sample}")
     logger.info(f"Epochs: {epoch}")
-    logger.info(f"Learning rate: {lr}")
+    logger.info(f"Learning rate (λ): {lr}")
     logger.info(f"Model: {model}")
-    logger.info(f"Embedding dimension: {dim}")
+    logger.info(f"Embedding dimension (κ): {dim}")
     logger.info(f"Negative sampling ratio: {neg_ratio}")
     logger.info(f"Batch size: {batch_size}")
     logger.info(f"Device: {device}")
@@ -82,14 +82,13 @@ def main():
         
     # #Initialize and start training
     trainer = Train(train_dataloader)
-    trainer.start()
+    #trainer.start()
 
-    # print('Done with training')
-
-    # test_dataloader = TestDataLoader(loader)
+    test_dataloader = TestDataLoader(loader)
   
-    # tester = Test(test_dataloader)
-    # tester.run_link_prediction()
+    tester = Test(test_dataloader)
+    tester.run_link_prediction()
+    
     print('Done with training')
     
 if __name__ == '__main__':

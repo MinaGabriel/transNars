@@ -19,6 +19,7 @@ from data.Loader import *
 from torch.utils.data import DataLoader
 from data.TrainDataLoader import TrainDataLoader
 from data.Loader import Loader
+from data.ValidDataLoader import ValidDataLoader
 # Set random seeds for reproducibility
 torch.manual_seed(7)
 random.seed(7)
@@ -36,11 +37,12 @@ class Train:
     def __init__(self, dataset: TrainDataLoader):
         self.dataset = dataset.data
         self.lr = dataset.loader.lr
+        self.loader = dataset.loader
         self.device = torch.device(
             dataset.loader.device if torch.cuda.is_available() else 'cpu')
         self.batch_size = dataset.loader.batch_size
         self.gamma = 5.0
-        self.lambda_reg = 0.1
+        self.lambda_reg = 2.0
         self.weight_decay = 0
         self.neg_ratio = dataset.loader.neg_ratio
         self.epoch = dataset.loader.epoch
@@ -51,10 +53,19 @@ class Train:
                                 dataset.loader.num_relations, dataset.loader.embedding_dimension, dataset.loader.device)
 
         self.model.to(self.device)
+        
+        # get validation data
+        self.test_dataloader = ValidDataLoader(self.loader)
+        
+    def validation(self):
+        return 
+        for _, batch in enumerate(self.test_dataloader.data): 
+            print(_)
+            
 
     def start(self):
         self.model.train()
-        optimizer = torch.optim.Adam(
+        optimizer = torch.optim.SGD(
             self.model.parameters(), lr=self.lr, weight_decay=self.weight_decay)
 
         training_range = tqdm(range(self.epoch))
@@ -89,6 +100,8 @@ class Train:
 
                 total_loss += total_batch_loss.item()
                 num_batches += 1
+            
+            self.validation()
 
             average_loss = total_loss / num_batches
             epoch_losses.append(average_loss)
