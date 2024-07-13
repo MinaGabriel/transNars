@@ -1,9 +1,0 @@
-8
-knows 0
-likes 1
-visited 2
-teaches 3
-dislikes 4
-studies 5
-located_in 6
-prefers 7
