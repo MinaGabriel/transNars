@@ -1,4 +1,4 @@
-./datasets/benchmarks/*
+/datasets/benchmarks/*
 /.idea
 /NARSPython/__pycache__
 /NARSPython/NALGrammar/__pycache__
