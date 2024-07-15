@@ -19,6 +19,11 @@ extern "C" void validDataLoader(char *path, INT *batch_h, INT *batch_t, INT *bat
 
 }
 
+//Get Sorted Train by Head 
+
+extern "C" void getSortedTrainByHead(INT *batch_h, INT *batch_t, INT *batch_r){
+    
+}
 
 extern "C" void trainDataLoader(char *path, INT *batch_h, INT *batch_t, INT *batch_r, REAL *batch_y, INT neg_ratio, INT max_threads)
 {

@@ -35,8 +35,9 @@ struct Triple
 };
 
 Triple *trainList;
-Triple *trainHead;
-Triple *trainTail;
+
+Triple *trainHead; //sorted by Head, Relation and Tail order
+Triple *trainTail; //Sorted by Tail, Relation and Head order
 
 std::string inPath;
 INT relationTotal;
