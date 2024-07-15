@@ -19,7 +19,7 @@
 
 #define INT int64_t
 #define REAL float
-#define MAX_THREADS 8
+#define MAX_THREADS 5
 
 struct Triple
 {

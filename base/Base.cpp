@@ -20,7 +20,7 @@ extern "C" void validDataLoader(char *path, INT *batch_h, INT *batch_t, INT *bat
 }
 
 
-extern "C" void trainDataLoader(char *path, INT *batch_h, INT *batch_t, INT *batch_r, REAL *batch_y, INT neg_ratio)
+extern "C" void trainDataLoader(char *path, INT *batch_h, INT *batch_t, INT *batch_r, REAL *batch_y, INT neg_ratio, INT max_threads)
 {
     auto start = std::chrono::high_resolution_clock::now();
 
@@ -41,12 +41,16 @@ extern "C" void trainDataLoader(char *path, INT *batch_h, INT *batch_t, INT *bat
     // }
     // std::cout << "]" << std::endl;
 
-    INT workThreads = MAX_THREADS;
+    INT workThreads = max_threads;
     INT total = trainTotal * (1 + neg_ratio);
-
+    std::cout << "Total with neg samples: " << total << std::endl;
+    std::cout << "WorkThreads: " << workThreads << std::endl;
     while (total % workThreads > 0)
-    {
+    {   
         workThreads--;
+        std::cout << " WorkThreads - 1 = " << workThreads << std::endl;
+        
+
     }
 
     if (!batch_h || !batch_t || !batch_r || !batch_y)

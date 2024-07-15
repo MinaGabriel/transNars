@@ -10,7 +10,7 @@ class ValidDataset(Dataset):
         self.batch_t = data["batch_t"]
         self.batch_r = data["batch_r"]
         self.loader = loader
-        self.batch_size = loader.batch_size
+        self.batch_size = 1
         self.num_batches = (len(self.batch_h) // self.batch_size) + (1 if len(self.batch_h) % self.batch_size != 0 else 0)
 
 
@@ -20,8 +20,8 @@ class ValidDataset(Dataset):
 
     def __getitem__(self, idx):
         # Calculate start and end indices for the batch
-        start_idx = idx * self.loader.batch_size
-        end_idx = start_idx + self.loader.batch_size
+        start_idx = idx * self.batch_size
+        end_idx = start_idx + self.batch_size
 
         # Retrieve the batch data
         batch_h = torch.tensor(self.batch_h[start_idx:end_idx], dtype=torch.int64)

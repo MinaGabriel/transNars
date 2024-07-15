@@ -23,6 +23,7 @@ class TrainDataLoader:
             ctypes.c_void_p,
             ctypes.c_void_p,
             ctypes.c_void_p,
+            ctypes.c_int64, 
             ctypes.c_int64
         ]
         self.loader = loader
@@ -39,7 +40,8 @@ class TrainDataLoader:
         batch_y_addr = batch_y.__array_interface__["data"][0]
         self.lib.trainDataLoader(
             ctypes.create_string_buffer(self.loader.dataset_dir.encode(), len(self.loader.dataset_dir) * 2),
-            batch_h_addr, batch_t_addr, batch_r_addr, batch_y_addr, self.loader.neg_ratio
+            batch_h_addr, batch_t_addr, batch_r_addr, batch_y_addr, self.loader.neg_ratio, 
+            self.loader.max_threads
         )
         data = {
             "batch_h": batch_h,

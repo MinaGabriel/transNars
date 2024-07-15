@@ -9,22 +9,6 @@ import torch
 from torch.utils.data import DataLoader
 from data.TestDataLoader import *
 from Test import *
-def get_parameter():
-    parser = argparse.ArgumentParser()
-    # Expected 5 files inside the dataset directory:
-    # 1. entity2id.txt 2. relation2id.txt 3. train2id.txt 4. test2id.txt 5. valid2id.txt
-    parser.add_argument('-dataset', default='./datasets/benchmarks/WN18/', type=str, help='Dataset directory')
-    parser.add_argument('-epoch', default=100, type=int, help="Number of epochs")
-    parser.add_argument('-lr', default=0.01, type=float, help="λ: Learning rate")
-    parser.add_argument('-model', default="TransE", type=str, help="Knowledge graph embedding model")
-    parser.add_argument('-dim', default=50, type=int, help="K: Embedding dimension")
-    parser.add_argument('-neg_sample', default="c", type=str, help="Negative samples algorithm")
-    parser.add_argument('-neg_ratio', default=25, type=int, help="Negative sampling ratio")
-    parser.add_argument('-batch_size', default=75, type=int, help="Batch size")
-    parser.add_argument('-device', default="cuda:0" if torch.cuda.is_available() else "cpu", type=str, help="Device to use (cpu|cuda:0)")
-
-    args = parser.parse_args()
-    return args
 
 
 def print_cuda_devices():
@@ -38,58 +22,43 @@ def print_cuda_devices():
 
 
 def main():
-    args = get_parameter()
+    
     print_cuda_devices()
     
-   
+    with open('./models/TransE_WN18.yaml', 'r') as file:
+        config = yaml.safe_load(file)
 
-    dataset_dir = args.dataset
-    neg_sample = args.neg_sample
-    epoch = args.epoch
-    lr = args.lr
-    model = args.model
-    dim = args.dim
-    neg_ratio = args.neg_ratio
-    batch_size = args.batch_size
-    device = args.device
+    train_config = config['Train']
+    
+    #NOTE: 
+    config = {
+        'dataset_dir': train_config['dataset'],
+        'neg_sample': train_config['neg_sample'],
+        'epoch': train_config['epoch'],
+        'lr': train_config['lr'],
+        'model': train_config['model'],
+        'dim': train_config['dim'],
+        'neg_ratio': train_config['neg_ratio'],
+        'batch_size': train_config['batch_size'],
+        'max_threads': train_config['max_threads'],
+        'device': 'cuda:0' if torch.cuda.is_available() else 'cpu',
+        'validation_rate': train_config['validation_rate']
+    }
 
-    # Set up logging
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
-    logger = logging.getLogger(__name__)
 
-    logger.info("Starting training with the following parameters:")
-    logger.info(f"Dataset directory: {dataset_dir}")
-    logger.info(f"Negative Sample: {neg_sample}")
-    logger.info(f"Epochs: {epoch}")
-    logger.info(f"Learning rate (λ): {lr}")
-    logger.info(f"Model: {model}")
-    logger.info(f"Embedding dimension (κ): {dim}")
-    logger.info(f"Negative sampling ratio: {neg_ratio}")
-    logger.info(f"Batch size: {batch_size}")
-    logger.info(f"Device: {device}")
-
-    # Check if folder and the required files exist
-    if not check_folder_and_files(dataset_dir):
-        logger.error("Dataset directory or required files are missing.")
-        return
-
-    loader = Loader(dataset_dir, neg_sample,
-                    epoch, lr, model, dim, neg_ratio, 
-                    batch_size, device)
-
+    loader = Loader.config(config)
     # read train data.
     train_dataloader = TrainDataLoader(loader) 
         
     # #Initialize and start training
     trainer = Train(train_dataloader)
-    #trainer.start()
+    trainer.start()
 
     test_dataloader = TestDataLoader(loader)
   
     tester = Test(test_dataloader)
     tester.run_link_prediction()
     
-    print('Done with training')
     
 if __name__ == '__main__':
     main()
