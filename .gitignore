@@ -11,5 +11,5 @@ __pycache__/train.cpython-312.pyc
 play.ipynb
 *.pyc
 __pycache__/negative_sampling.cpython-312.pyc
-./models/*
+models/
 *.pt
