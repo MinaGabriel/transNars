@@ -9,20 +9,33 @@ from NARSPython.NALGrammar.Terms import Term
 import NARSPython.NALInferenceRules
 import NARSPython.NALInferenceRules.Syllogistic
 
-
+import multiprocessing
+from multiprocessing import Process, Manager
 
 class NARSKnowledgeGraph:
+
+    class Node:
+        class NodeType(Enum):
+            Entity = 1, # KG Entity
+            Relation = 2 # KG Relation
+
+        def __init__(self, node_type: NodeType, term: Term):
+            self.node_type = node_type
+            self.term = term
+            self.sentences_where_node_is_subject: List[NARSPython.NALGrammar.Sentences.Sentence] = []
+            self.sentences_where_node_is_predicate: List[NARSPython.NALGrammar.Sentences.Sentence] = []
+
 
     def __init__(self, dataset_directory: str, silent_mode: bool):
         print("Initializing NARS")
         self.dataset_directory: str = dataset_directory
         self.silent_mode = silent_mode
 
-        self.nodes_dict: dict = {}
-        self.entity_ID_to_name = {}
-        self.relation_ID_to_name = {}
-        self.entity_name_to_ID = {}
-        self.relation_name_to_ID = {}
+        self.nodes_dict = dict()
+        self.entity_ID_to_name = dict()
+        self.relation_ID_to_name = dict()
+        self.entity_name_to_ID = dict()
+        self.relation_name_to_ID = dict()
 
         self.LoadEntityIDs()
         self.LoadRelationIDs()
@@ -55,19 +68,77 @@ class NARSKnowledgeGraph:
                         .replace(",",";")
                         .replace(r"\u0022","\""))
 
-    class Node:
-        class NodeType(Enum):
-            Entity = 1, # KG Entity
-            Relation = 2 # KG Relation
-
-        def __init__(self, node_type: NodeType, term: Term):
-            self.node_type = node_type
-            self.term = term
-            self.sentences_where_node_is_subject: List[NARSPython.NALGrammar.Sentences.Sentence] = []
-            self.sentences_where_node_is_predicate: List[NARSPython.NALGrammar.Sentences.Sentence] = []
 
 
-    def LoadTrainingSet(self, NUM_TO_LOAD = -1):
+    def CreateNALJudgmentFromLine(self,pieces: List[str]):
+        # turn the numeric IDs into strings
+        subjectID, predicateID, relationID = int(pieces[0].rstrip()), int(pieces[1].rstrip()), int(pieces[2].rstrip())
+        subject, object, relation = self.entity_ID_to_name[subjectID], self.entity_ID_to_name[predicateID], self.relation_ID_to_name[relationID]
+
+        # create NAL belief
+        #NAL_judgment = NARSPython.NALGrammar.Sentences.new_sentence_from_string("<<*," + subject + "," + object + ">-->" + relation + ">.")
+        NAL_judgment = self.TripletToJudgment(subjectID, predicateID, relationID )
+        #print(NAL_judgment)
+
+        NAL_subject_term = NAL_judgment.statement.get_subject_term()
+        NAL_predicate_term = NAL_judgment.statement.get_predicate_term()
+
+        # create nodes for the entities if they don't exist
+        if NAL_subject_term not in self.nodes_dict: self.nodes_dict[NAL_subject_term] = self.Node(node_type=self.Node.NodeType.Entity, term=NAL_subject_term)
+        if NAL_predicate_term not in self.nodes_dict: self.nodes_dict[NAL_predicate_term] = self.Node(node_type=self.Node.NodeType.Entity, term=NAL_predicate_term)
+
+        self.nodes_dict[NAL_subject_term].sentences_where_node_is_subject.append(NAL_judgment)
+        self.nodes_dict[NAL_predicate_term].sentences_where_node_is_predicate.append(NAL_judgment)
+        #if subject not in nodes_dict: nodes_dict[subject] = Node(node_type=NodeType.Entity, name=subject)
+        #if object not in nodes_dict: nodes_dict[object] = Node(node_type=NodeType.Entity, name=object)
+        #if relation not in nodes_dict: nodes_dict[relation] = Node(node_type=NodeType.Relation, name=relation)
+
+    def LoadTrainingSetBatch(self, thread_id: int, num_lines_in_batch: int, total_lines):
+        start_idx = int(thread_id*num_lines_in_batch)
+        end_idx = int(start_idx + num_lines_in_batch)
+
+        for i in range(start_idx,end_idx):
+            line = total_lines[i+1]
+            pieces = line.split(" ")
+            judgment = self.CreateNALJudgmentFromLine(pieces)
+
+    def LoadTrainingSetMultithreaded(self, NUM_TO_LOAD = -1):
+        # load the training set as Narsese sentences, and also create nodes
+        print("Loading Training Set into NARS")
+        largest_num_of_sentences_with_same_predicate = 0
+        total_lines = 1
+
+
+
+        with open(self.dataset_directory + '/train2id.txt', encoding="utf8") as f:
+            i = 0
+            lines = f.readlines()
+            if NUM_TO_LOAD == -1:
+                first_line = lines[0]
+                total_lines = int(first_line)
+            else:
+                total_lines = NUM_TO_LOAD
+
+            num_threads = self.max_threads
+            while (total_lines % num_threads > 0):
+                num_threads -= 1
+
+            print("Will load " + str(total_lines) + " triples as Judgments using multithreading with " + str(num_threads) + " threads.")
+
+            num_lines_in_batch = total_lines / num_threads
+
+            # launch all the threads, each thread will load a fraction/batch of the training dataset into NARS
+            threads = []
+            for i in range(num_threads):
+                p = Process(target=self.LoadTrainingSetBatch, args=(i,num_lines_in_batch,lines))
+                p.start()
+                threads.append(p)
+
+            # make sure the threads finish
+            for p in threads: p.join()
+            pass
+
+    def LoadTrainingSet(self, NUM_TO_LOAD=-1):
         # load the training set as Narsese sentences, and also create nodes
         print("Loading Training Set into NARS")
         largest_num_of_sentences_with_same_predicate = 0
@@ -77,36 +148,53 @@ class NARSKnowledgeGraph:
             for line in f.readlines():
                 pieces = line.split(" ")
                 if len(pieces) == 1:
-                    if NUM_TO_LOAD == -1: total_lines = int(pieces[0])
-                    else: total_lines = NUM_TO_LOAD
+                    if NUM_TO_LOAD == -1:
+                        total_lines = int(pieces[0])
+                    else:
+                        total_lines = NUM_TO_LOAD
                     print("Will load " + str(total_lines) + " triples as Judgments.")
-                    continue # skip the first line
+                    continue  # skip the first line
                 # turn the numeric IDs into strings
-                subjectID, predicateID, relationID = int(pieces[0].rstrip()), int(pieces[1].rstrip()), int(pieces[2].rstrip())
-                subject, object, relation = self.entity_ID_to_name[subjectID], self.entity_ID_to_name[predicateID], self.relation_ID_to_name[relationID]
+                subjectID, predicateID, relationID = int(pieces[0].rstrip()), int(pieces[1].rstrip()), int(
+                    pieces[2].rstrip())
+                subject, object, relation = self.entity_ID_to_name[subjectID], self.entity_ID_to_name[predicateID], \
+                self.relation_ID_to_name[relationID]
 
                 # create NAL belief
-                #NAL_judgment = NARSPython.NALGrammar.Sentences.new_sentence_from_string("<<*," + subject + "," + object + ">-->" + relation + ">.")
-                NAL_judgment = self.TripletToJudgment(subjectID, predicateID, relationID )
-                #print(NAL_judgment)
+                # NAL_judgment = NARSPython.NALGrammar.Sentences.new_sentence_from_string("<<*," + subject + "," + object + ">-->" + relation + ">.")
+                NAL_judgment = self.TripletToJudgment(subjectID, predicateID, relationID)
+                # print(NAL_judgment)
 
                 NAL_subject_term = NAL_judgment.statement.get_subject_term()
                 NAL_predicate_term = NAL_judgment.statement.get_predicate_term()
 
                 # create nodes for the entities if they don't exist
-                if NAL_subject_term not in self.nodes_dict: self.nodes_dict[NAL_subject_term] = self.Node(node_type=self.Node.NodeType.Entity, term=NAL_subject_term)
-                if NAL_predicate_term not in self.nodes_dict: self.nodes_dict[NAL_predicate_term] = self.Node(node_type=self.Node.NodeType.Entity, term=NAL_predicate_term)
+                if NAL_subject_term not in self.nodes_dict: self.nodes_dict[NAL_subject_term] = self.Node(
+                    node_type=self.Node.NodeType.Entity, term=NAL_subject_term)
+                if NAL_predicate_term not in self.nodes_dict: self.nodes_dict[NAL_predicate_term] = self.Node(
+                    node_type=self.Node.NodeType.Entity, term=NAL_predicate_term)
 
                 self.nodes_dict[NAL_subject_term].sentences_where_node_is_subject.append(NAL_judgment)
                 self.nodes_dict[NAL_predicate_term].sentences_where_node_is_predicate.append(NAL_judgment)
-                #if subject not in nodes_dict: nodes_dict[subject] = Node(node_type=NodeType.Entity, name=subject)
-                #if object not in nodes_dict: nodes_dict[object] = Node(node_type=NodeType.Entity, name=object)
-                #if relation not in nodes_dict: nodes_dict[relation] = Node(node_type=NodeType.Relation, name=relation)
+                # if subject not in nodes_dict: nodes_dict[subject] = Node(node_type=NodeType.Entity, name=subject)
+                # if object not in nodes_dict: nodes_dict[object] = Node(node_type=NodeType.Entity, name=object)
+                # if relation not in nodes_dict: nodes_dict[relation] = Node(node_type=NodeType.Relation, name=relation)
 
                 i += 1
-                if not self.silent_mode: print("NARS Training Set Load Status: Loading Triple " + str(i) + "/" + str(total_lines))
-                if NUM_TO_LOAD != -1 and i >= NUM_TO_LOAD: break
+                if not self.silent_mode: print(
+                    "NARS Training Set Load Status: Loading Triple " + str(i) + "/" + str(total_lines))
+                else:
+                    if i == total_lines // 4:
+                        print(
+                            "NARS Training Set Load Status: 25%")
+                    elif i == total_lines // 2:
+                        print(
+                            "NARS Training Set Load Status: 50%")
+                    elif i == 3*total_lines // 4:
+                        print(
+                            "NARS Training Set Load Status: 75%")
 
+                if NUM_TO_LOAD != -1 and i >= NUM_TO_LOAD: break
 
     def AddResultToKnowledgeBase(self, result: NARSPython.NALGrammar.Sentences.Judgment):
         if not self.IsJudgmentAlreadyKnownFromKnowledgeGraph(result):
