@@ -26,22 +26,31 @@ class TrainDataLoader:
             ctypes.c_int64, 
             ctypes.c_int64
         ]
+        self.lib.getSortedTrainByHead.argtypes = [ 
+            ctypes.c_void_p,
+            ctypes.c_void_p,
+            ctypes.c_void_p,
+            ctypes.c_void_p,
+            ctypes.c_void_p
+        ]
+        
+        
         self.loader = loader
         self.read()
 
     def read(self):
-        batch_h = np.zeros(self.loader.num_train * (1 + self.loader.neg_ratio), dtype=np.int64)
-        batch_t = np.zeros(self.loader.num_train * (1 + self.loader.neg_ratio), dtype=np.int64)
-        batch_r = np.zeros(self.loader.num_train * (1 + self.loader.neg_ratio), dtype=np.int64)
-        batch_y = np.zeros(self.loader.num_train * (1 + self.loader.neg_ratio), dtype=np.float32)
+        batch_h = np.zeros(self.loader.num_train * (1 + self.loader.config['neg_ratio']), dtype=np.int64)
+        batch_t = np.zeros(self.loader.num_train * (1 + self.loader.config['neg_ratio']), dtype=np.int64)
+        batch_r = np.zeros(self.loader.num_train * (1 + self.loader.config['neg_ratio']), dtype=np.int64)
+        batch_y = np.zeros(self.loader.num_train * (1 + self.loader.config['neg_ratio']), dtype=np.float32)
         batch_h_addr = batch_h.__array_interface__["data"][0]
         batch_t_addr = batch_t.__array_interface__["data"][0]
         batch_r_addr = batch_r.__array_interface__["data"][0]
         batch_y_addr = batch_y.__array_interface__["data"][0]
         self.lib.trainDataLoader(
-            ctypes.create_string_buffer(self.loader.dataset_dir.encode(), len(self.loader.dataset_dir) * 2),
-            batch_h_addr, batch_t_addr, batch_r_addr, batch_y_addr, self.loader.neg_ratio, 
-            self.loader.max_threads
+            ctypes.create_string_buffer(self.loader.config['dataset'].encode(), len(self.loader.config['dataset']) * 2),
+            batch_h_addr, batch_t_addr, batch_r_addr, batch_y_addr, self.loader.config['neg_ratio'], 
+            self.loader.config['max_threads']
         )
         data = {
             "batch_h": batch_h,
@@ -50,5 +59,33 @@ class TrainDataLoader:
             "batch_y": batch_y
         }
         custom_dataset = TrainDataset(data, self.loader)
-        self.data =  DataLoader(custom_dataset, batch_size=1, shuffle=False)  # batch size is 1, data already in batches array.
- 
+        # batch size is 1, data already in batches array.
+        self.data = DataLoader(custom_dataset, batch_size=1, shuffle=False)
+        
+
+        
+
+    def get_sorted_train_by_head(self):
+        """
+        get sorted list of training by head -> relation -> tail
+        """
+        batch_h = np.zeros(self.loader.num_train, dtype=np.int64)
+        batch_t = np.zeros(self.loader.num_train, dtype=np.int64)
+        batch_r = np.zeros(self.loader.num_train, dtype=np.int64)
+
+        start_idx = np.zeros(self.loader.num_entities, dtype=np.int64)
+        end_idx = np.zeros(self.loader.num_entities, dtype=np.int64)
+        
+        batch_h_addr = batch_h.__array_interface__["data"][0]
+        batch_t_addr = batch_t.__array_interface__["data"][0]
+        batch_r_addr = batch_r.__array_interface__["data"][0]
+        start_idx_addr = start_idx.__array_interface__["data"][0]
+        end_idx_addr = end_idx.__array_interface__["data"][0]
+        
+        self.lib.getSortedTrainByHead(
+             batch_h_addr, batch_t_addr, batch_r_addr, start_idx_addr, end_idx_addr
+        )
+         
+        return batch_h, batch_r, batch_t, start_idx, end_idx
+        
+        

@@ -10,8 +10,8 @@ class TrainDataset(Dataset):
         self.batch_t = data["batch_t"]
         self.batch_r = data["batch_r"]
         self.batch_y = data["batch_y"]
-        self.neg_ratio = loader.neg_ratio
-        self.batch_size = loader.batch_size
+        self.neg_ratio = loader.config['neg_ratio']
+        self.batch_size = loader.config['batch_size']
         self.num_batches = (len(self.batch_y) + self.batch_size * (1 + self.neg_ratio) - 1) // (self.batch_size * (1 + self.neg_ratio))
 
 

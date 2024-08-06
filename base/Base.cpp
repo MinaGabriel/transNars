@@ -7,7 +7,7 @@ extern "C" void testDataLoader(char *path, INT *batch_h, INT *batch_t, INT *batc
     relationTotal = readFirstLine(inPath + "relation2id.txt");
     entityTotal = readFirstLine(inPath + "entity2id.txt");
     importTestFiles(batch_h, batch_t, batch_r);
-    std::cout << "C++ Training Data Done!" << std::endl; 
+    std::cout << "C++ Test Data Done!" << std::endl; 
 
 }
 
@@ -19,10 +19,24 @@ extern "C" void validDataLoader(char *path, INT *batch_h, INT *batch_t, INT *bat
 
 }
 
-//Get Sorted Train by Head 
+//Get Sorted Train by Head
 
-extern "C" void getSortedTrainByHead(INT *batch_h, INT *batch_t, INT *batch_r){
-    
+extern "C" void getSortedTrainByHead(INT *batch_h, INT *batch_t, INT *batch_r,
+                                     INT *start, INT *end)
+{
+
+    for (INT i = 0; i < trainTotal; i++)
+    {
+        batch_h[i] = trainHead[i].h;
+        batch_r[i] = trainHead[i].r;
+        batch_t[i] = trainHead[i].t;
+    }
+    // get the head start and end index
+    for (INT i = 0; i < entityTotal; i++)
+    {
+        start[i] = headStartIndices[i];
+        end[i] = headEndIndices[i];
+    }
 }
 
 extern "C" void trainDataLoader(char *path, INT *batch_h, INT *batch_t, INT *batch_r, REAL *batch_y, INT neg_ratio, INT max_threads)
@@ -36,7 +50,7 @@ extern "C" void trainDataLoader(char *path, INT *batch_h, INT *batch_t, INT *bat
 
     std::cout << "relationTotal: " << relationTotal << std::endl;
     std::cout << "entityTotal: " << entityTotal << std::endl;
-    std::cout << "trainTotal: " << trainTotal << std::endl;
+    std::cout << "trainTotal: " << trainTotal << " (" << humanReadableNumber(trainTotal) << ")" << std::endl;
     std::cout << "neg_ratio: " << neg_ratio << std::endl;
 
     // std::cout << "headCorruptProb" << ": [";
@@ -48,16 +62,16 @@ extern "C" void trainDataLoader(char *path, INT *batch_h, INT *batch_t, INT *bat
 
     INT workThreads = max_threads;
     INT total = trainTotal * (1 + neg_ratio);
-    std::cout << "Total with neg samples: " << total << std::endl;
+    std::cout << "Total with neg samples: " << total << " (" << humanReadableNumber(total) << ")" << std::endl;
     std::cout << "WorkThreads: " << workThreads << std::endl;
-    while (total % workThreads > 0)
-    {   
-        workThreads--;
-        std::cout << " WorkThreads - 1 = " << workThreads << std::endl;
-        
 
+    while (total % workThreads != 0)
+    {
+        workThreads --;
+        std::cout << "WorkThreads: " << workThreads << std::endl;
     }
-
+    
+ 
     if (!batch_h || !batch_t || !batch_r || !batch_y)
     {
         std::cerr << "Error: Memory allocation failed." << std::endl;
@@ -77,7 +91,7 @@ extern "C" void trainDataLoader(char *path, INT *batch_h, INT *batch_t, INT *bat
         std::cerr << "Error: Memory allocation failed." << std::endl;
     }
 
-    INT chunkSize = total / workThreads;
+    INT chunkSize = (total / workThreads);
     for (INT threads = 0; threads < workThreads; threads++)
     {
         para[threads].id = threads;

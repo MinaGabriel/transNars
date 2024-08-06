@@ -33,7 +33,7 @@ class ValidDataLoader(object):
         batch_r_addr = batch_r.__array_interface__["data"][0]
         self.lib.validDataLoader(
             ctypes.create_string_buffer(
-                self.loader.dataset_dir.encode(), len(self.loader.dataset_dir) * 2),
+                self.loader.config['dataset'].encode(), len(self.loader.config['dataset']) * 2),
             batch_h_addr, batch_t_addr, batch_r_addr
         )
         data = {
@@ -41,6 +41,6 @@ class ValidDataLoader(object):
             "batch_r": batch_r,
             "batch_t": batch_t
         }
-        custom_dataset = ValidDataset(data, self.loader)
-        # batch size is 1, data already in batches array.
-        self.data = DataLoader(custom_dataset, batch_size=1, shuffle=False)
+        custom_dataset = ValidDataset(data)
+        # NOTE: batch size is 1, validate 1 data sample at a time...
+        self.data = DataLoader(custom_dataset, batch_size=128, shuffle=False)

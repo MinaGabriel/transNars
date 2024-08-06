@@ -5,26 +5,17 @@ import torch
 
 
 class ValidDataset(Dataset):
-    def __init__(self, data, loader: Loader):
+    def __init__(self, data):
         self.batch_h = data["batch_h"]
         self.batch_t = data["batch_t"]
         self.batch_r = data["batch_r"]
-        self.loader = loader
-        self.batch_size = 1
-        self.num_batches = (len(self.batch_h) // self.batch_size) + (1 if len(self.batch_h) % self.batch_size != 0 else 0)
-
-
     def __len__(self):
-        # Number of batches
-        return self.num_batches
+        # Number of samples
+        return len(self.batch_h)
 
     def __getitem__(self, idx):
-        # Calculate start and end indices for the batch
-        start_idx = idx * self.batch_size
-        end_idx = start_idx + self.batch_size
-
-        # Retrieve the batch data
-        batch_h = torch.tensor(self.batch_h[start_idx:end_idx], dtype=torch.int64)
-        batch_t = torch.tensor(self.batch_t[start_idx:end_idx], dtype=torch.int64)
-        batch_r = torch.tensor(self.batch_r[start_idx:end_idx], dtype=torch.int64)
+        # Retrieve the sample data
+        batch_h = torch.tensor([self.batch_h[idx]], dtype=torch.int64)
+        batch_t = torch.tensor([self.batch_t[idx]], dtype=torch.int64)
+        batch_r = torch.tensor([self.batch_r[idx]], dtype=torch.int64)
         return batch_h, batch_t, batch_r

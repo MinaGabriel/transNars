@@ -33,7 +33,7 @@ class TestDataLoader(object):
         batch_t_addr = batch_t.__array_interface__["data"][0]
         batch_r_addr = batch_r.__array_interface__["data"][0] 
         self.lib.testDataLoader(
-            ctypes.create_string_buffer(self.loader.dataset_dir.encode(), len(self.loader.dataset_dir) * 2),
+            ctypes.create_string_buffer(self.loader.config['dataset'].encode(), len(self.loader.config['dataset']) * 2),
             batch_h_addr, batch_t_addr, batch_r_addr
         )
         data = {

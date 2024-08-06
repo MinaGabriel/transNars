@@ -16,6 +16,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <cstdlib>
+#include <iomanip>
 
 #define INT int64_t
 #define REAL float
@@ -62,6 +63,24 @@ INT *validRelationEndIndex;
 
 std::vector<REAL> left_mean, right_mean;
 unsigned long long *next_random;
+
+// Function to convert a number to a human-readable string with suffixes
+std::string humanReadableNumber(long long num) {
+    const char* suffixes[] = {"", "K", "M", "B", "T"};
+    size_t suffixIndex = 0;
+    double reducedNum = num;
+
+    // Reduce the number and increment the suffix index
+    while (reducedNum >= 1000 && suffixIndex < sizeof(suffixes)/sizeof(suffixes[0]) - 1) {
+        reducedNum /= 1000.0;
+        suffixIndex++;
+    }
+
+    // Create a string stream to format the number
+    std::stringstream ss;
+    ss << std::fixed << std::setprecision(1) << reducedNum << suffixes[suffixIndex];
+    return ss.str();
+}
 
 class Random
 {
