@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 import numexpr as ne
 import numpy as np
 import torch

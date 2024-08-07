@@ -70,18 +70,14 @@ class NARSNegativeSampling:
 
 
 if __name__ == "__main__":
-    location = 'datasets/benchmarks/WN18'
-    output_file_name = 'neg_sam_n.txt'
+    location = 'datasets/benchmarks/FB15K237'
+    output_file_name = 'NARS_generated_samples_' + str(location.split("/")[2]) + '.txt'
+    print("Will output NARS samples to " + str(output_file_name))
     dataset = TripletsDataset(location)
     data_loader = DataLoader(
             dataset.train_dataset,
             batch_size=512, shuffle=False
         )
-
-    with open('./models/TransE_WN18.yaml', 'r') as file:
-        config = yaml.safe_load(file)
-
-    train_config = config['Train']
 
     NARS = NARSKnowledgeGraph(dataset_directory=location, silent_mode=True)
     NARS.LoadTrainingSet(-1)  # store Judgments for all the training set triples
