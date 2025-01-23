@@ -11,8 +11,9 @@ class TestDataset(Dataset):
         self.batch_r = data["batch_r"]
         self.loader = loader
         self.batch_size = 1
-        self.num_batches = (len(self.batch_h) // self.batch_size) + (1 if len(self.batch_h) % self.batch_size != 0 else 0)
-
+        self.num_batches = (len(self.batch_h) // self.batch_size) + (
+            1 if len(self.batch_h) % self.batch_size != 0 else 0
+        )
 
     def __len__(self):
         # Number of batches

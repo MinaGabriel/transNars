@@ -82,53 +82,64 @@ class TermConnector(enum.Enum):
     @classmethod
     def is_first_order(cls, connector):
         """
-            First order connectors are Term Connectors
-            Higher order connectors are Statement Connectors
+        First order connectors are Term Connectors
+        Higher order connectors are Statement Connectors
         """
-        assert connector is not None,"ERROR: None is not a term connector"
-        return not (connector is cls.Negation or
-                    connector is cls.Conjunction or
-                    connector is cls.Disjunction or
-                    connector is cls.SequentialConjunction or
-                    connector is cls.ParallelConjunction or
-                    connector is cls.ArrayConjunction)
+        assert connector is not None, "ERROR: None is not a term connector"
+        return not (
+            connector is cls.Negation
+            or connector is cls.Conjunction
+            or connector is cls.Disjunction
+            or connector is cls.SequentialConjunction
+            or connector is cls.ParallelConjunction
+            or connector is cls.ArrayConjunction
+        )
 
     @classmethod
     def is_order_invariant(cls, connector):
-        return (connector is cls.ExtensionalIntersection or
-                connector is cls.IntensionalIntersection or
-                connector is cls.ExtensionalSetStart or
-                connector is cls.IntensionalSetStart or
-                connector is cls.Negation or
-                connector is cls.Conjunction or
-                connector is cls.Disjunction)
+        return (
+            connector is cls.ExtensionalIntersection
+            or connector is cls.IntensionalIntersection
+            or connector is cls.ExtensionalSetStart
+            or connector is cls.IntensionalSetStart
+            or connector is cls.Negation
+            or connector is cls.Conjunction
+            or connector is cls.Disjunction
+        )
 
     @classmethod
     def is_conjunction(cls, connector):
-        #assert connector is not None, "ERROR: None is not a term connector"
-        return (connector is cls.Conjunction or
-                connector is cls.SequentialConjunction or
-                connector is cls.ParallelConjunction)
+        # assert connector is not None, "ERROR: None is not a term connector"
+        return (
+            connector is cls.Conjunction
+            or connector is cls.SequentialConjunction
+            or connector is cls.ParallelConjunction
+        )
 
     @classmethod
-    def contains_conjunction(cls,string):
-        return (cls.Conjunction.value in string or
-                cls.SequentialConjunction.value in string or
-                cls.ParallelConjunction.value in string)
+    def contains_conjunction(cls, string):
+        return (
+            cls.Conjunction.value in string
+            or cls.SequentialConjunction.value in string
+            or cls.ParallelConjunction.value in string
+        )
 
     @classmethod
-    def contains_higher_level_connector(cls,string):
+    def contains_higher_level_connector(cls, string):
         for connector in cls:
             if not cls.is_first_order(connector):
                 # higher order connector
-                if connector.value in string: return True
+                if connector.value in string:
+                    return True
         return False
 
     @classmethod
     def get_set_end_connector_from_set_start_connector(cls, start_connector):
-        if start_connector == TermConnector.ExtensionalSetStart: return TermConnector.ExtensionalSetEnd
-        if start_connector == TermConnector.IntensionalSetStart: return TermConnector.IntensionalSetEnd
-        assert False,"ERROR: Invalid start connector"
+        if start_connector == TermConnector.ExtensionalSetStart:
+            return TermConnector.ExtensionalSetEnd
+        if start_connector == TermConnector.IntensionalSetStart:
+            return TermConnector.IntensionalSetEnd
+        assert False, "ERROR: Invalid start connector"
 
     @classmethod
     def is_set_bracket_start(cls, bracket):
@@ -139,7 +150,8 @@ class TermConnector(enum.Enum):
         """
         assert bracket is not None, "ERROR: None is not a term connector"
         return (bracket == TermConnector.IntensionalSetStart.value) or (
-                bracket == TermConnector.ExtensionalSetStart.value)
+            bracket == TermConnector.ExtensionalSetStart.value
+        )
 
     @classmethod
     def is_set_bracket_end(cls, bracket):
@@ -150,7 +162,8 @@ class TermConnector(enum.Enum):
         """
         assert bracket is not None, "ERROR: None is not a term connector"
         return (bracket == TermConnector.IntensionalSetEnd.value) or (
-                bracket == TermConnector.ExtensionalSetEnd.value)
+            bracket == TermConnector.ExtensionalSetEnd.value
+        )
 
 
 class Copula(enum.Enum):
@@ -170,35 +183,42 @@ class Copula(enum.Enum):
     PredictiveEquivalence = "</>"
     ConcurrentEquivalence = "<|>"
 
-
     @classmethod
     def is_implication(cls, copula):
-        return copula is cls.Implication \
-               or copula is cls.PredictiveImplication \
-               or copula is cls.RetrospectiveImplication \
+        return (
+            copula is cls.Implication
+            or copula is cls.PredictiveImplication
+            or copula is cls.RetrospectiveImplication
+        )
 
     @classmethod
     def is_first_order(cls, copula):
-        return copula is cls.Inheritance \
-               or copula is cls.Similarity \
-               or copula is cls.Instance \
-               or copula is cls.Property \
-               or copula is cls.InstanceProperty
+        return (
+            copula is cls.Inheritance
+            or copula is cls.Similarity
+            or copula is cls.Instance
+            or copula is cls.Property
+            or copula is cls.InstanceProperty
+        )
 
     @classmethod
     def is_temporal(cls, copula):
-        return copula == cls.PredictiveImplication \
-               or copula == cls.RetrospectiveImplication \
-               or copula == cls.ConcurrentImplication \
-               or copula == cls.PredictiveEquivalence \
-               or copula == cls.ConcurrentEquivalence
+        return (
+            copula == cls.PredictiveImplication
+            or copula == cls.RetrospectiveImplication
+            or copula == cls.ConcurrentImplication
+            or copula == cls.PredictiveEquivalence
+            or copula == cls.ConcurrentEquivalence
+        )
 
     @classmethod
     def is_symmetric(cls, copula):
-        return copula == cls.Similarity \
-               or copula == cls.Equivalence \
-               or copula == cls.PredictiveEquivalence \
-               or copula == cls.ConcurrentEquivalence
+        return (
+            copula == cls.Similarity
+            or copula == cls.Equivalence
+            or copula == cls.PredictiveEquivalence
+            or copula == cls.ConcurrentEquivalence
+        )
 
     @classmethod
     def is_string_a_copula(cls, value):
@@ -223,17 +243,17 @@ class Copula(enum.Enum):
         return False
 
     @classmethod
-    def contains_top_level_copula(cls,string):
+    def contains_top_level_copula(cls, string):
         copula, _ = cls.get_top_level_copula(string)
         return copula is not None
 
     @classmethod
-    def get_top_level_copula(cls,string):
+    def get_top_level_copula(cls, string):
         """
-            Searches for top-level copula in the string.
+        Searches for top-level copula in the string.
 
-            :returns copula and index if it exists,
-            :returns none and -1 otherwise
+        :returns copula and index if it exists,
+        :returns none and -1 otherwise
         """
         copula = None
         copula_idx = -1
@@ -244,8 +264,12 @@ class Copula(enum.Enum):
                 depth += 1
             elif v == StatementSyntax.End.value:
                 depth -= 1
-            elif depth == 1 and i + 3 <= len(string) and Copula.is_string_a_copula(string[i:i + 3]):
-                copula, copula_idx = Copula.get_copula_from_string(string[i:i + 3]), i
+            elif (
+                depth == 1
+                and i + 3 <= len(string)
+                and Copula.is_string_a_copula(string[i : i + 3])
+            ):
+                copula, copula_idx = Copula.get_copula_from_string(string[i : i + 3]), i
 
         return copula, copula_idx
 
@@ -276,12 +300,70 @@ class Punctuation(enum.Enum):
 List of valid characters that can be used in a term.
 """
 valid_term_chars = {
-    'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
-    'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
-    'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',
-    'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
-    "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "_", "^",
-
+    "a",
+    "b",
+    "c",
+    "d",
+    "e",
+    "f",
+    "g",
+    "h",
+    "i",
+    "j",
+    "k",
+    "l",
+    "m",
+    "n",
+    "o",
+    "p",
+    "q",
+    "r",
+    "s",
+    "t",
+    "u",
+    "v",
+    "w",
+    "x",
+    "y",
+    "z",
+    "A",
+    "B",
+    "C",
+    "D",
+    "E",
+    "F",
+    "G",
+    "H",
+    "I",
+    "J",
+    "K",
+    "L",
+    "M",
+    "N",
+    "O",
+    "P",
+    "Q",
+    "R",
+    "S",
+    "T",
+    "U",
+    "V",
+    "W",
+    "X",
+    "Y",
+    "Z",
+    "0",
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9",
+    "_",
+    "^",
     "ə",
     "½",
     "'",
@@ -303,7 +385,7 @@ valid_term_chars = {
     "@",
     "$",
     "+",
-    "\"",
+    '"',
     "/",
     ":",
     ";",

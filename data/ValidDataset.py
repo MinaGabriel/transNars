@@ -9,6 +9,7 @@ class ValidDataset(Dataset):
         self.batch_h = data["batch_h"]
         self.batch_t = data["batch_t"]
         self.batch_r = data["batch_r"]
+
     def __len__(self):
         # Number of samples
         return len(self.batch_h)

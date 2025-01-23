@@ -4,20 +4,25 @@ import NARSPython.Config as Config
 import NARSPython.Global as Global
 import NARSPython.NALGrammar as NALGrammar
 import NARSPython.NALSyntax as NALSyntax
-from NARSPython.NALInferenceRules.TruthValueFunctions import TruthFunctionOnArrayAndRevise, TruthFunctionOnArray, F_Deduction, \
-    F_Revision, F_Abduction
+from NARSPython.NALInferenceRules.TruthValueFunctions import (
+    TruthFunctionOnArrayAndRevise,
+    TruthFunctionOnArray,
+    F_Deduction,
+    F_Revision,
+    F_Abduction,
+)
 
 import NARSPython.NALInferenceRules.Local
 
 
 def get_truthvalue_from_evidence(wp, w):
     """
-        Input:
-            wp: positive evidence w+
+    Input:
+        wp: positive evidence w+
 
-            w: total evidence w
-        Returns:
-            frequency, confidence
+        w: total evidence w
+    Returns:
+        frequency, confidence
     """
     if wp == 0 and w == 0:
         # special case, 0/0
@@ -32,12 +37,12 @@ def get_truthvalue_from_evidence(wp, w):
 
 def get_evidence_fromfreqconf(f, c):
     """
-        Input:
-            f: frequency
+    Input:
+        f: frequency
 
-            c: confidence
-        Returns:
-            w+, w, w-
+        c: confidence
+    Returns:
+        w+, w, w-
     """
     wp = Config.k * f * c / (1 - c)
     w = Config.k * c / (1 - c)
@@ -46,17 +51,17 @@ def get_evidence_fromfreqconf(f, c):
 
 def get_confidence_from_evidence(w):
     """
-        Input:
-            w: Total evidence
-        Returns:
-            confidence
+    Input:
+        w: Total evidence
+    Returns:
+        confidence
     """
     return w / (w + Config.k)
 
 
-
-
-def create_resultant_sentence_two_premise(j1, j2, result_statement, truth_value_function):
+def create_resultant_sentence_two_premise(
+    j1, j2, result_statement, truth_value_function
+):
     """
         Creates the resultant sentence between 2 premises, the resultant statement, and the truth function
     :param j1:
@@ -67,20 +72,31 @@ def create_resultant_sentence_two_premise(j1, j2, result_statement, truth_value_
     """
     result_statement = NALGrammar.Terms.simplify(result_statement)
 
-    result_type = premise_result_type(j1,j2)
+    result_type = premise_result_type(j1, j2)
 
-    if result_type == NALGrammar.Sentences.Judgment or result_type == NALGrammar.Sentences.Goal:
+    if (
+        result_type == NALGrammar.Sentences.Judgment
+        or result_type == NALGrammar.Sentences.Goal
+    ):
         # Judgment or Goal
         # Get Truth Value
-        higher_order_statement = isinstance(result_statement,
-                                            NALGrammar.Terms.StatementTerm) and not result_statement.is_first_order()
+        higher_order_statement = (
+            isinstance(result_statement, NALGrammar.Terms.StatementTerm)
+            and not result_statement.is_first_order()
+        )
 
         if higher_order_statement:
             (f1, c1) = (j1.value.frequency, j1.value.confidence)
             (f2, c2) = (j2.value.frequency, j2.value.confidence)
         else:
-            (f1, c1) = (j1.get_present_value().frequency, j1.get_present_value().confidence)
-            (f2, c2) = (j2.get_present_value().frequency, j2.get_present_value().confidence)
+            (f1, c1) = (
+                j1.get_present_value().frequency,
+                j1.get_present_value().confidence,
+            )
+            (f2, c2) = (
+                j2.get_present_value().frequency,
+                j2.get_present_value().confidence,
+            )
 
         result_truth = truth_value_function(f1, c1, f2, c2)
         occurrence_time = None
@@ -91,10 +107,13 @@ def create_resultant_sentence_two_premise(j1, j2, result_statement, truth_value_
             occurrence_time = Global.Global.get_current_cycle_number()
 
         if result_type == NALGrammar.Sentences.Judgment:
-            result = NALGrammar.Sentences.Judgment(result_statement, result_truth,
-                                                   occurrence_time=occurrence_time)
+            result = NALGrammar.Sentences.Judgment(
+                result_statement, result_truth, occurrence_time=occurrence_time
+            )
         elif result_type == NALGrammar.Sentences.Goal:
-            result = NALGrammar.Sentences.Goal(result_statement, result_truth, occurrence_time=occurrence_time)
+            result = NALGrammar.Sentences.Goal(
+                result_statement, result_truth, occurrence_time=occurrence_time
+            )
     elif result_type == NALGrammar.Sentences.Question:
         result = NALGrammar.Sentences.Question(result_statement)
 
@@ -106,12 +125,14 @@ def create_resultant_sentence_two_premise(j1, j2, result_statement, truth_value_
         # event evidential bases expire too quickly to track
         pass
 
-
-    stamp_and_print_inference_rule(result, truth_value_function, [j1,j2])
+    stamp_and_print_inference_rule(result, truth_value_function, [j1, j2])
 
     return result
 
-def create_resultant_sentence_one_premise(j, result_statement, truth_value_function, result_truth=None):
+
+def create_resultant_sentence_one_premise(
+    j, result_statement, truth_value_function, result_truth=None
+):
     """
         Creates the resultant sentence for 1 premise, the resultant statement, and the truth function
         if truth function is None, uses j's truth-value
@@ -123,38 +144,51 @@ def create_resultant_sentence_one_premise(j, result_statement, truth_value_funct
     """
     result_statement = NALGrammar.Terms.simplify(result_statement)
     result_type = type(j)
-    if result_type == NALGrammar.Sentences.Judgment or result_type == NALGrammar.Sentences.Goal:
+    if (
+        result_type == NALGrammar.Sentences.Judgment
+        or result_type == NALGrammar.Sentences.Goal
+    ):
         # Get Truth Value
         result_truth_array = None
         if result_truth is None:
             if truth_value_function is None:
-                result_truth = j.value #NALGrammar.Values.TruthValue(j.value.frequency,j.value.confidence)
+                result_truth = (
+                    j.value
+                )  # NALGrammar.Values.TruthValue(j.value.frequency,j.value.confidence)
             else:
-                result_truth = truth_value_function(j.value.frequency, j.value.confidence)
-
+                result_truth = truth_value_function(
+                    j.value.frequency, j.value.confidence
+                )
 
         if result_type == NALGrammar.Sentences.Judgment:
-            result = NALGrammar.Sentences.Judgment(result_statement, result_truth,
-                                                   occurrence_time=j.stamp.occurrence_time)
+            result = NALGrammar.Sentences.Judgment(
+                result_statement, result_truth, occurrence_time=j.stamp.occurrence_time
+            )
         elif result_type == NALGrammar.Sentences.Goal:
-            result = NALGrammar.Sentences.Goal(result_statement, result_truth,
-                                               occurrence_time=j.stamp.occurrence_time)
+            result = NALGrammar.Sentences.Goal(
+                result_statement, result_truth, occurrence_time=j.stamp.occurrence_time
+            )
     elif result_type == NALGrammar.Sentences.Question:
         result = NALGrammar.Sentences.Question(result_statement)
 
-
     if truth_value_function is None:
-        stamp_and_print_inference_rule(result, truth_value_function, j.stamp.parent_premises)
+        stamp_and_print_inference_rule(
+            result, truth_value_function, j.stamp.parent_premises
+        )
     else:
         stamp_and_print_inference_rule(result, truth_value_function, [j])
 
     return result
 
+
 def stamp_and_print_inference_rule(sentence, inference_rule, parent_sentences):
-    sentence.stamp.derived_by = "Structural Transformation" if inference_rule is None else inference_rule.__name__
+    sentence.stamp.derived_by = (
+        "Structural Transformation"
+        if inference_rule is None
+        else inference_rule.__name__
+    )
 
     sentence.stamp.parent_premises = []
-
 
     parent_strings = []
     for parent in parent_sentences:
@@ -177,15 +211,23 @@ def stamp_and_print_inference_rule(sentence, inference_rule, parent_sentences):
         # else:
         #     parent_strings.append("other " + str(parent.value))
 
+    if (
+        inference_rule is F_Deduction
+        and isinstance(sentence, NALGrammar.Sentences.Judgment)
+        and sentence.statement.is_first_order()
+    ):
+        Global.Global.debug_print(
+            sentence.stamp.derived_by
+            + " derived "
+            + sentence.get_formatted_string()
+            + " by parents "
+            + str(parent_strings)
+        )
 
-    if inference_rule is F_Deduction and isinstance(sentence, NALGrammar.Sentences.Judgment) and sentence.statement.is_first_order():
-        Global.Global.debug_print(sentence.stamp.derived_by
-                              + " derived " + sentence.get_formatted_string()
-                              + " by parents " + str(parent_strings))
 
-def premise_result_type(j1,j2):
+def premise_result_type(j1, j2):
     """
-        Given 2 sentence premises, determines the type of the resultant sentence
+    Given 2 sentence premises, determines the type of the resultant sentence
     """
     if not isinstance(j1, NALGrammar.Sentences.Judgment):
         return type(j1)
@@ -194,22 +236,26 @@ def premise_result_type(j1,j2):
     else:
         return NALGrammar.Sentences.Judgment
 
+
 def convert_to_interval(working_cycles):
     """
-        return interval from working cycles
+    return interval from working cycles
     """
-    #round(Config.INTERVAL_SCALE*math.sqrt(working_cycles))
-    return working_cycles#round(math.log(Config.INTERVAL_SCALE * working_cycles)) + 1 #round(math.log(working_cycles)) + 1 ##round(5*math.log(0.05*(working_cycles + 9))+4)
+    # round(Config.INTERVAL_SCALE*math.sqrt(working_cycles))
+    return working_cycles  # round(math.log(Config.INTERVAL_SCALE * working_cycles)) + 1 #round(math.log(working_cycles)) + 1 ##round(5*math.log(0.05*(working_cycles + 9))+4)
+
 
 def convert_from_interval(interval):
     """
-        return working cycles from interval
+    return working cycles from interval
     """
-    #round((interval/Config.INTERVAL_SCALE) ** 2)
-    return interval#round(math.exp(interval) / Config.INTERVAL_SCALE) #round(math.exp(interval))  # round(math.exp((interval-4)/5)/0.05 - 9)
+    # round((interval/Config.INTERVAL_SCALE) ** 2)
+    return interval  # round(math.exp(interval) / Config.INTERVAL_SCALE) #round(math.exp(interval))  # round(math.exp((interval-4)/5)/0.05 - 9)
+
 
 def interval_weighted_average(interval1, interval2, weight1, weight2):
-    return round((interval1*weight1 + interval2*weight2)/(weight1 + weight2))
+    return round((interval1 * weight1 + interval2 * weight2) / (weight1 + weight2))
+
 
 def get_unit_evidence():
     return 1 / (1 + Config.k)

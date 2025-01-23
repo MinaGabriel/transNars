@@ -9,6 +9,7 @@
             Assumes the given sentences do not have evidential overlap.
             Does combine evidential bases in the Resultant Sentence.
 """
+
 import Asserts
 import NALGrammar
 import NALSyntax
@@ -17,32 +18,32 @@ from NALInferenceRules import TruthValueFunctions, HelperFunctions
 
 def DisjunctionOrIntensionalIntersection(j1, j2):
     """
-        First Order: Intensional Intersection (Strong Inference)
-        Higher Order: Disjunction
+    First Order: Intensional Intersection (Strong Inference)
+    Higher Order: Disjunction
 
-        Assumes: j1 and j2 do not have evidential overlap
-        -----------------
+    Assumes: j1 and j2 do not have evidential overlap
+    -----------------
 
-        Input:
-            j1: Sentence (T1 --> M <f1, c1>) (Sentence (T1 ==> M <f1, c1>))
-            and
-            j2: Sentence (T2 --> M <f2, c2>) (Sentence (T2 ==> M <f2, c2>))
+    Input:
+        j1: Sentence (T1 --> M <f1, c1>) (Sentence (T1 ==> M <f1, c1>))
+        and
+        j2: Sentence (T2 --> M <f2, c2>) (Sentence (T2 ==> M <f2, c2>))
 
-            OR
+        OR
 
-            j1: Sentence (M --> T1 <f1, c1>) (Sentence (M ==> T1 <f1, c1>))
-            and
-            j2: Sentence (M --> T2 <f2, c2>) (Sentence (M ==> T2 <f2, c2>))
-        Evidence:
-            F_int
+        j1: Sentence (M --> T1 <f1, c1>) (Sentence (M ==> T1 <f1, c1>))
+        and
+        j2: Sentence (M --> T2 <f2, c2>) (Sentence (M ==> T2 <f2, c2>))
+    Evidence:
+        F_int
 
-            OR
+        OR
 
-            F_uni
-        Returns:
-            :- Sentence ((T1 | T2) --> M) (Sentence ((T1 || T2) --> M))
-            OR
-            :- Sentence (M --> (T1 | T2)) (Sentence (M --> (T1 || T2)))
+        F_uni
+    Returns:
+        :- Sentence ((T1 | T2) --> M) (Sentence ((T1 || T2) --> M))
+        OR
+        :- Sentence (M --> (T1 | T2)) (Sentence (M --> (T1 || T2)))
     """
     Asserts.assert_sentence_asymmetric(j1)
     Asserts.assert_sentence_asymmetric(j2)
@@ -62,19 +63,21 @@ def DisjunctionOrIntensionalIntersection(j1, j2):
     if j1.statement.get_predicate_term() == j2.statement.get_predicate_term():
         # j1: Sentence(T1 --> M < f1, c1 >)
         # j2: Sentence(T2 --> M < f2, c2 >)
-        if isinstance(j1.statement.get_subject_term(), NALGrammar.Terms.CompoundTerm) \
-                or isinstance(j2.statement.get_subject_term(), NALGrammar.Terms.CompoundTerm):
+        if isinstance(
+            j1.statement.get_subject_term(), NALGrammar.Terms.CompoundTerm
+        ) or isinstance(j2.statement.get_subject_term(), NALGrammar.Terms.CompoundTerm):
             # don't compound terms which are already compound
             # this reduces complexity.
             # todo: better simplifying of syntactically complex results
             return None
 
-        compound_term = NALGrammar.Terms.CompoundTerm([j1.statement.get_subject_term(),
-                                                       j2.statement.get_subject_term()],
-                                                      term_connector=connector)  # (T1 | T2)
-        result_statement = NALGrammar.Terms.StatementTerm(compound_term,
-                                                          j1.statement.get_predicate_term(),
-                                                          copula)  # ((T1 | T2) --> M)
+        compound_term = NALGrammar.Terms.CompoundTerm(
+            [j1.statement.get_subject_term(), j2.statement.get_subject_term()],
+            term_connector=connector,
+        )  # (T1 | T2)
+        result_statement = NALGrammar.Terms.StatementTerm(
+            compound_term, j1.statement.get_predicate_term(), copula
+        )  # ((T1 | T2) --> M)
 
         if not isinstance(j1, NALGrammar.Sentences.Question):
             result_truth_function = TruthValueFunctions.F_Intersection
@@ -82,62 +85,65 @@ def DisjunctionOrIntensionalIntersection(j1, j2):
     elif j1.statement.get_subject_term() == j2.statement.get_subject_term():
         # j1: Sentence(M --> T1 < f1, c1 >)
         # j2: Sentence(M --> T2 < f2, c2 >)
-        if isinstance(j1.statement.get_predicate_term(), NALGrammar.Terms.CompoundTerm) \
-                or isinstance(j2.statement.get_predicate_term(), NALGrammar.Terms.CompoundTerm):
+        if isinstance(
+            j1.statement.get_predicate_term(), NALGrammar.Terms.CompoundTerm
+        ) or isinstance(
+            j2.statement.get_predicate_term(), NALGrammar.Terms.CompoundTerm
+        ):
             # don't compound terms which are already compound
             # this reduces complexity.
             # todo: better simplifying of syntactically complex results
             return None
 
-        compound_term = NALGrammar.Terms.CompoundTerm([j1.statement.get_predicate_term(),
-                                                       j2.statement.get_predicate_term()],
-                                                      term_connector=connector)  # (T1 | T2)
+        compound_term = NALGrammar.Terms.CompoundTerm(
+            [j1.statement.get_predicate_term(), j2.statement.get_predicate_term()],
+            term_connector=connector,
+        )  # (T1 | T2)
 
-        result_statement = NALGrammar.Terms.StatementTerm(j1.statement.get_subject_term(),
-                                                          compound_term,
-                                                          copula)  # (M --> (T1 | T2))
+        result_statement = NALGrammar.Terms.StatementTerm(
+            j1.statement.get_subject_term(), compound_term, copula
+        )  # (M --> (T1 | T2))
 
         if not isinstance(j1, NALGrammar.Sentences.Question):
             result_truth_function = TruthValueFunctions.F_Union
     else:
-        assert False,"ERROR: Invalid inputs to Intensional Intersection"
+        assert False, "ERROR: Invalid inputs to Intensional Intersection"
 
-    return HelperFunctions.create_resultant_sentence_two_premise(j1,
-                                                                 j2,
-                                                                 result_statement,
-                                                                 result_truth_function)
+    return HelperFunctions.create_resultant_sentence_two_premise(
+        j1, j2, result_statement, result_truth_function
+    )
 
 
 def ConjunctionOrExtensionalIntersection(j1, j2):
     """
-        First-Order: Extensional Intersection (Strong Inference)
-        Higher-Order: Conjunction
+    First-Order: Extensional Intersection (Strong Inference)
+    Higher-Order: Conjunction
 
-        Assumes: j1 and j2 do not have evidential overlap
-        -----------------
+    Assumes: j1 and j2 do not have evidential overlap
+    -----------------
 
-        Input:
-            j1: Sentence (T1 --> M <f1, c1>) (Sentence (T1 ==> M <f1, c1>))
-            and
-            j2: Sentence (T2 --> M <f2, c2>) (Sentence (T2 ==> M <f2, c2>))
+    Input:
+        j1: Sentence (T1 --> M <f1, c1>) (Sentence (T1 ==> M <f1, c1>))
+        and
+        j2: Sentence (T2 --> M <f2, c2>) (Sentence (T2 ==> M <f2, c2>))
 
-            OR
+        OR
 
-            j1: Sentence (M --> T1 <f1, c1>) (Sentence (M ==> T1 <f1, c1>))
-            and
-            j2: Sentence (M --> T2 <f2, c2>) (Sentence (M ==> T2 <f2, c2>))
-        Evidence:
-            F_uni
+        j1: Sentence (M --> T1 <f1, c1>) (Sentence (M ==> T1 <f1, c1>))
+        and
+        j2: Sentence (M --> T2 <f2, c2>) (Sentence (M ==> T2 <f2, c2>))
+    Evidence:
+        F_uni
 
-            OR
+        OR
 
-            F_int
-        Returns:
-            Sentence ((T1 & T2) --> M) or Sentence ((T1 && T2) ==> M)
+        F_int
+    Returns:
+        Sentence ((T1 & T2) --> M) or Sentence ((T1 && T2) ==> M)
 
-            or
+        or
 
-            Sentence (M --> (T1 & T2)) or Sentence (M ==> (T1 && T2))
+        Sentence (M --> (T1 & T2)) or Sentence (M ==> (T1 && T2))
     """
     Asserts.assert_sentence_asymmetric(j1)
     Asserts.assert_sentence_asymmetric(j2)
@@ -146,30 +152,32 @@ def ConjunctionOrExtensionalIntersection(j1, j2):
     connector = None
     copula = None
     if j1.statement.is_first_order() and j2.statement.is_first_order():
-        connector = NALSyntax.TermConnector.ExtensionalIntersection # &
+        connector = NALSyntax.TermConnector.ExtensionalIntersection  # &
         copula = NALSyntax.Copula.Inheritance
     else:
         # higher-order, could be temporal
-        connector = NALSyntax.TermConnector.Conjunction # &&
+        connector = NALSyntax.TermConnector.Conjunction  # &&
         copula = NALSyntax.Copula.Implication
 
     result_truth_function = None
     if j1.statement.get_predicate_term() == j2.statement.get_predicate_term():
         # j1: Sentence(T1 --> M < f1, c1 >)
         # j2: Sentence(T2 --> M < f2, c2 >)
-        if isinstance(j1.statement.get_subject_term(), NALGrammar.Terms.CompoundTerm) \
-                or isinstance(j2.statement.get_subject_term(), NALGrammar.Terms.CompoundTerm):
+        if isinstance(
+            j1.statement.get_subject_term(), NALGrammar.Terms.CompoundTerm
+        ) or isinstance(j2.statement.get_subject_term(), NALGrammar.Terms.CompoundTerm):
             # don't compound terms which are already compound
             # this reduces complexity.
             # todo: better simplifying of syntactically complex results
             return None
 
-        compound_term = NALGrammar.Terms.CompoundTerm([j1.statement.get_subject_term(),
-                                                       j2.statement.get_subject_term()],
-                                                      term_connector=connector)  # (T1 & T2)
-        result_statement = NALGrammar.Terms.StatementTerm(compound_term,
-                                                          j1.statement.get_predicate_term(),
-                                                          copula)  # ((T1 & T2) --> M)
+        compound_term = NALGrammar.Terms.CompoundTerm(
+            [j1.statement.get_subject_term(), j2.statement.get_subject_term()],
+            term_connector=connector,
+        )  # (T1 & T2)
+        result_statement = NALGrammar.Terms.StatementTerm(
+            compound_term, j1.statement.get_predicate_term(), copula
+        )  # ((T1 & T2) --> M)
 
         if not isinstance(j1, NALGrammar.Sentences.Question):
             result_truth_function = TruthValueFunctions.F_Union
@@ -177,103 +185,108 @@ def ConjunctionOrExtensionalIntersection(j1, j2):
     elif j1.statement.get_subject_term() == j2.statement.get_subject_term():
         # j1: Sentence(M --> T1 < f1, c1 >)
         # j2: Sentence(M --> T2 < f2, c2 >)
-        if isinstance(j1.statement.get_predicate_term(), NALGrammar.Terms.CompoundTerm) \
-                or isinstance(j2.statement.get_predicate_term(), NALGrammar.Terms.CompoundTerm):
+        if isinstance(
+            j1.statement.get_predicate_term(), NALGrammar.Terms.CompoundTerm
+        ) or isinstance(
+            j2.statement.get_predicate_term(), NALGrammar.Terms.CompoundTerm
+        ):
             # don't compound terms which are already compound
             # this reduces complexity.
             # todo: better simplifying of syntactically complex results
             return None
-        compound_term = NALGrammar.Terms.CompoundTerm([j1.statement.get_predicate_term(),
-                                                       j2.statement.get_predicate_term()],
-                                                      term_connector=connector)  # (T1 & T2)
-        result_statement = NALGrammar.Terms.StatementTerm(j1.statement.get_subject_term(),
-                                                          compound_term,
-                                                          copula)  # (M --> (T1 & T2))
+        compound_term = NALGrammar.Terms.CompoundTerm(
+            [j1.statement.get_predicate_term(), j2.statement.get_predicate_term()],
+            term_connector=connector,
+        )  # (T1 & T2)
+        result_statement = NALGrammar.Terms.StatementTerm(
+            j1.statement.get_subject_term(), compound_term, copula
+        )  # (M --> (T1 & T2))
 
         if not isinstance(j1, NALGrammar.Sentences.Question):
             result_truth_function = TruthValueFunctions.F_Intersection
     else:
         assert False, "ERROR: Invalid inputs to Extensional Intersection"
 
-    return HelperFunctions.create_resultant_sentence_two_premise(j1,
-                                                                 j2,
-                                                                 result_statement,
-                                                                 result_truth_function)
+    return HelperFunctions.create_resultant_sentence_two_premise(
+        j1, j2, result_statement, result_truth_function
+    )
 
 
 def IntensionalDifference(j1, j2):
     """
-        Intensional Difference (Strong Inference)
+    Intensional Difference (Strong Inference)
 
-        Assumes: j1 and j2 do not have evidential overlap
-        -----------------
+    Assumes: j1 and j2 do not have evidential overlap
+    -----------------
 
-        Input:
-            j1: Sentence (T1 --> M <f1, c1>)
-            and
-            j2: Sentence (T2 --> M <f2, c2>)
-        Evidence:
-            F_difference
-        Returns:
-            :- Sentence ((T1 ~ T2) --> M)
+    Input:
+        j1: Sentence (T1 --> M <f1, c1>)
+        and
+        j2: Sentence (T2 --> M <f2, c2>)
+    Evidence:
+        F_difference
+    Returns:
+        :- Sentence ((T1 ~ T2) --> M)
     """
     Asserts.assert_sentence_asymmetric(j1)
     Asserts.assert_sentence_asymmetric(j2)
     assert j1.statement.get_predicate_term() == j2.statement.get_predicate_term()
 
-    if isinstance(j1.statement.get_subject_term(), NALGrammar.Terms.CompoundTerm) \
-            or isinstance(j2.statement.get_subject_term(), NALGrammar.Terms.CompoundTerm):
+    if isinstance(
+        j1.statement.get_subject_term(), NALGrammar.Terms.CompoundTerm
+    ) or isinstance(j2.statement.get_subject_term(), NALGrammar.Terms.CompoundTerm):
         # don't compound terms which are already compound
         # this reduces complexity.
         # todo: better simplifying of syntactically complex results
         return None
 
-    compound_term = NALGrammar.Terms.CompoundTerm([j1.statement.get_subject_term(),
-                                                   j2.statement.get_subject_term()],
-                                                  NALSyntax.TermConnector.IntensionalDifference)  # (T1 ~ T2)
-    result_statement = NALGrammar.Terms.StatementTerm(compound_term,
-                                                      j1.statement.get_predicate_term(),
-                                                      NALSyntax.Copula.Inheritance)  # ((T1 ~ T2) --> M)
-    return HelperFunctions.create_resultant_sentence_two_premise(j1,
-                                                                 j2,
-                                                                 result_statement,
-                                                                 TruthValueFunctions.F_Difference)
+    compound_term = NALGrammar.Terms.CompoundTerm(
+        [j1.statement.get_subject_term(), j2.statement.get_subject_term()],
+        NALSyntax.TermConnector.IntensionalDifference,
+    )  # (T1 ~ T2)
+    result_statement = NALGrammar.Terms.StatementTerm(
+        compound_term, j1.statement.get_predicate_term(), NALSyntax.Copula.Inheritance
+    )  # ((T1 ~ T2) --> M)
+    return HelperFunctions.create_resultant_sentence_two_premise(
+        j1, j2, result_statement, TruthValueFunctions.F_Difference
+    )
 
 
 def ExtensionalDifference(j1, j2):
     """
-        Extensional Difference (Strong Inference)
+    Extensional Difference (Strong Inference)
 
-        Assumes: j1 and j2 do not have evidential overlap
-        -----------------
-        Input:
-            j1: Sentence (M --> T1 <f1, c1>)
-            and
-            j2: Sentence (M --> T2 <f2, c2>)
-        Evidence:
-            F_difference
-        Returns:
-            :- Sentence (M --> (T1 - T2))
+    Assumes: j1 and j2 do not have evidential overlap
+    -----------------
+    Input:
+        j1: Sentence (M --> T1 <f1, c1>)
+        and
+        j2: Sentence (M --> T2 <f2, c2>)
+    Evidence:
+        F_difference
+    Returns:
+        :- Sentence (M --> (T1 - T2))
     """
     Asserts.assert_sentence_asymmetric(j1)
     Asserts.assert_sentence_asymmetric(j2)
     assert j1.statement.get_subject_term() == j2.statement.get_subject_term()
 
-    if isinstance(j1.statement.get_predicate_term(), NALGrammar.Terms.CompoundTerm) \
-            or isinstance(j2.statement.get_predicate_term(), NALGrammar.Terms.CompoundTerm):
+    if isinstance(
+        j1.statement.get_predicate_term(), NALGrammar.Terms.CompoundTerm
+    ) or isinstance(j2.statement.get_predicate_term(), NALGrammar.Terms.CompoundTerm):
         # don't compound terms which are already compound
         # this reduces complexity.
         # todo: better simplifying of syntactically complex results
         return None
 
-    compound_term = NALGrammar.Terms.CompoundTerm([j1.statement.get_predicate_term(),
-                                                   j2.statement.get_predicate_term()],
-                                                  NALSyntax.TermConnector.ExtensionalDifference)
-    result_statement = NALGrammar.Terms.StatementTerm(j1.statement.get_subject_term(),
-                                                      compound_term,
-                                                      NALSyntax.Copula.Inheritance)  # (M --> (T1 - T2))
+    compound_term = NALGrammar.Terms.CompoundTerm(
+        [j1.statement.get_predicate_term(), j2.statement.get_predicate_term()],
+        NALSyntax.TermConnector.ExtensionalDifference,
+    )
+    result_statement = NALGrammar.Terms.StatementTerm(
+        j1.statement.get_subject_term(), compound_term, NALSyntax.Copula.Inheritance
+    )  # (M --> (T1 - T2))
 
-    return HelperFunctions.create_resultant_sentence_two_premise(j1,
-                                                                 j2,
-                                                                 result_statement,
-                                                                 TruthValueFunctions.F_Difference)
+    return HelperFunctions.create_resultant_sentence_two_premise(
+        j1, j2, result_statement, TruthValueFunctions.F_Difference
+    )

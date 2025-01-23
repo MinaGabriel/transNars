@@ -10,17 +10,18 @@
             Does combine evidential bases in the Resultant Sentence.
 """
 
+
 def band(*argv):
     """
-        Boolean AND
+    Boolean AND
 
-        -----------------
+    -----------------
 
-        Input:
-            argv: NAL Boolean Values
+    Input:
+        argv: NAL Boolean Values
 
-        Returns:
-            argv1*argv2*...*argvn
+    Returns:
+        argv1*argv2*...*argvn
     """
     res = 1
     for arg in argv:
@@ -28,18 +29,17 @@ def band(*argv):
     return res
 
 
-
 def bor(*argv):
     """
-        Boolean OR
+    Boolean OR
 
-        -----------------
+    -----------------
 
-        Input:
-            argv: NAL Boolean Values
+    Input:
+        argv: NAL Boolean Values
 
-        Returns:
-             1-((1-argv1)*(1-argv2)*...*(1-argvn))
+    Returns:
+         1-((1-argv1)*(1-argv2)*...*(1-argvn))
     """
     res = 1
     for arg in argv:
@@ -49,14 +49,14 @@ def bor(*argv):
 
 def bnot(arg):
     """
-        Boolean Not
+    Boolean Not
 
-        -----------------
+    -----------------
 
-        Input:
-            arg: NAL Boolean Value
+    Input:
+        arg: NAL Boolean Value
 
-        Returns:
-            1 minus arg
+    Returns:
+        1 minus arg
     """
     return 1 - arg

@@ -7,8 +7,9 @@ from data.utils import *
 import logging
 
 # Configure logging
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
 
 # Set the maximum number of threads for NumExpr
@@ -21,19 +22,20 @@ class TripletsDataset:
     def __init__(self, dataset_dir):
         self.dataset_dir = dataset_dir
         self.name = os.path.basename(dataset_dir)
-        self.train_file_path = os.path.join(dataset_dir, 'train2id.txt')
-        self.valid_file_path = os.path.join(dataset_dir, 'valid2id.txt')
-        self.test_file_path = os.path.join(dataset_dir, 'test2id.txt')
+        self.train_file_path = os.path.join(dataset_dir, "train2id.txt")
+        self.valid_file_path = os.path.join(dataset_dir, "valid2id.txt")
+        self.test_file_path = os.path.join(dataset_dir, "test2id.txt")
 
         self.entity_map = generate_dictionary(
-            os.path.join(dataset_dir, 'entity2id.txt'))
+            os.path.join(dataset_dir, "entity2id.txt")
+        )
         self.relation_map = generate_dictionary(
-            os.path.join(dataset_dir, 'relation2id.txt'))
+            os.path.join(dataset_dir, "relation2id.txt")
+        )
         self.all_entity_ids = self.get_all_entity_ids()
         self.all_relation_ids = self.get_all_relation_ids()
         self.reverse_entity_map = {v: k for k, v in self.entity_map.items()}
-        self.reverse_relation_map = {
-            v: k for k, v in self.relation_map.items()}
+        self.reverse_relation_map = {v: k for k, v in self.relation_map.items()}
         self.num_train = int(open(self.train_file_path).readline().strip())
         self.num_valid = int(open(self.valid_file_path).readline().strip())
         self.num_test = int(open(self.test_file_path).readline().strip())
@@ -48,7 +50,7 @@ class TripletsDataset:
         relation = []
         tail = []
 
-        with open(file_path, 'r') as file:
+        with open(file_path, "r") as file:
             for line in file:
                 parts = line.split(" ")
                 if len(parts) == 3:
@@ -57,7 +59,9 @@ class TripletsDataset:
                     relation.append(r)
                     tail.append(t)
                 else:
-                    print(f"Warning: Line does not contain exactly three elements: {line.strip()} in {file_path}")
+                    print(
+                        f"Warning: Line does not contain exactly three elements: {line.strip()} in {file_path}"
+                    )
 
         head = np.array(head, dtype=np.int64)
         relation = np.array(relation, dtype=np.int64)
@@ -83,8 +87,7 @@ class TripletsDataset:
 
         # Iterate through all triples and populate the dictionaries
         for triple in range(X.shape[0]):
-            h, r, t = X[triple][0].item(
-            ), X[triple][1].item(), X[triple][2].item()
+            h, r, t = X[triple][0].item(), X[triple][1].item(), X[triple][2].item()
 
             try:
                 all_possible_hs[t][r].append(h)
@@ -147,6 +150,6 @@ class TestDataset(Dataset):
 
 
 if __name__ == "__main__":
-    dataset = TripletsDataset('datasets/FB15K237')
+    dataset = TripletsDataset("datasets/FB15K237")
     print(f"All triplets tensor shape: {dataset.all_triplets_tensor.shape}")
     print(f"All triplets tensor device: {dataset.all_triplets_tensor.device}")

@@ -1,8 +1,9 @@
 """
-    Author: Christian Hahm
-    Created: October 9, 2020
-    Purpose: Enforces Narsese grammar that is used throughout the project
+Author: Christian Hahm
+Created: October 9, 2020
+Purpose: Enforces Narsese grammar that is used throughout the project
 """
+
 import enum
 import re
 
@@ -17,17 +18,20 @@ from NARSPython import NALSyntax
 Helper Functions
 """
 
+
 def is_valid_statement(term):
-    return isinstance(term, StatementTerm) or \
-           (isinstance(term, CompoundTerm) and not term.is_first_order())
+    return isinstance(term, StatementTerm) or (
+        isinstance(term, CompoundTerm) and not term.is_first_order()
+    )
+
 
 def from_string(term_string):
     """
-        Determine if it is an atomic term (e.g. "A") or a statement/compound term (e.g. (&&,A,B,..) or (A --> B))
-        or variable term and creates the corresponding Term.
+    Determine if it is an atomic term (e.g. "A") or a statement/compound term (e.g. (&&,A,B,..) or (A --> B))
+    or variable term and creates the corresponding Term.
 
-        :param term_string - String from which to construct the term
-        :returns Term constructed using the string
+    :param term_string - String from which to construct the term
+    :returns Term constructed using the string
     """
     term_string = term_string.replace(" ", "")
 
@@ -37,19 +41,23 @@ def from_string(term_string):
         """
             Compound or Statement Term
         """
-        assert (term_string[-1] == NALSyntax.StatementSyntax.End.value),\
+        assert term_string[-1] == NALSyntax.StatementSyntax.End.value, (
             "Statement term must have ending parenthesis: " + term_string
+        )
 
         term = StatementTerm.from_string(term_string)
     elif term_string[0] == NALSyntax.StatementSyntax.CompoundStart.value:
-        assert (term_string[-1] == NALSyntax.StatementSyntax.CompoundEnd.value), \
+        assert term_string[-1] == NALSyntax.StatementSyntax.CompoundEnd.value, (
             "Compound term must have ending parenthesis: " + term_string
+        )
         term = CompoundTerm.from_string(term_string)
     elif NALSyntax.TermConnector.is_set_bracket_start(term_string[0]):
         # set term
         term = CompoundTerm.from_string(term_string)
-    elif term_string[0] == VariableTerm.VARIABLE_SYM \
-            or term_string[0] == VariableTerm.QUERY_SYM:
+    elif (
+        term_string[0] == VariableTerm.VARIABLE_SYM
+        or term_string[0] == VariableTerm.QUERY_SYM
+    ):
         # variable term
         dependency_list_start_idx = term_string.find("(")
         if dependency_list_start_idx == -1:
@@ -57,11 +65,15 @@ def from_string(term_string):
             dependency_list_string = ""
         else:
             variable_name = term_string[1:dependency_list_start_idx]
-            dependency_list_string = term_string[term_string.find("(") + 1:term_string.find(")")]
+            dependency_list_string = term_string[
+                term_string.find("(") + 1 : term_string.find(")")
+            ]
 
-        term = VariableTerm.from_string(variable_name=variable_name,
-                                        variable_type_symbol=term_string[0],
-                                        dependency_list_string=dependency_list_string)
+        term = VariableTerm.from_string(
+            variable_name=variable_name,
+            variable_type_symbol=term_string[0],
+            dependency_list_string=dependency_list_string,
+        )
     else:
         term_string = re.sub(",\d+", "", term_string)
         term = AtomicTerm(term_string)
@@ -71,27 +83,33 @@ def from_string(term_string):
 
 def simplify(term):
     """
-        Simplifies a term and its subterms,
-        using NAL Theorems.
+    Simplifies a term and its subterms,
+    using NAL Theorems.
 
-        :returns The simplified term
+    :returns The simplified term
     """
-    return term #todo
+    return term  # todo
     simplified_term = term
 
     if isinstance(term, StatementTerm):
-        simplified_term = StatementTerm(subject_term=simplify(term.get_subject_term()),
-                                        predicate_term=simplify(term.get_predicate_term()),
-                                        copula=term.get_copula(),
-                                        interval=term.interval)
+        simplified_term = StatementTerm(
+            subject_term=simplify(term.get_subject_term()),
+            predicate_term=simplify(term.get_predicate_term()),
+            copula=term.get_copula(),
+            interval=term.interval,
+        )
     elif isinstance(term, CompoundTerm):
-        if term.connector == NALSyntax.TermConnector.Negation and \
-                len(term.subterms) == 1 and \
-                isinstance(term.subterms[0], CompoundTerm) and \
-                term.subterms[0].connector == NALSyntax.TermConnector.Negation:
+        if (
+            term.connector == NALSyntax.TermConnector.Negation
+            and len(term.subterms) == 1
+            and isinstance(term.subterms[0], CompoundTerm)
+            and term.subterms[0].connector == NALSyntax.TermConnector.Negation
+        ):
             # (--,(--,(S --> P)) <====> (S --> P)
             # Double negation theorem. 2 Negations cancel out
-            simplified_term = simplify(term.subterms[0].subterms[0])  # get the inner statement
+            simplified_term = simplify(
+                term.subterms[0].subterms[0]
+            )  # get the inner statement
         # elif NALSyntax.TermConnector.is_conjunction(term.connector):
         #         #(&&,A,B..C)
         #         new_subterms = []
@@ -123,14 +141,15 @@ def simplify(term):
 
 class Term:
     """
-        Base class for all terms.
+    Base class for all terms.
     """
+
     term_id = 0
-    def __init__(self,
-                 term_string):
+
+    def __init__(self, term_string):
         assert isinstance(term_string, str), term_string + " must be a str"
         self.string = term_string
-        self.syntactic_complexity = 0#self._calculate_syntactic_complexity()
+        self.syntactic_complexity = 0  # self._calculate_syntactic_complexity()
 
     @classmethod
     def get_next_term_ID(cls):
@@ -142,7 +161,7 @@ class Term:
 
     def __eq__(self, other):
         """
-            Terms are equal if their strings are the same
+        Terms are equal if their strings are the same
         """
         return str(self) == str(other)
 
@@ -159,8 +178,9 @@ class Term:
         return False
 
     def contains_variable(self):
-        return VariableTerm.VARIABLE_SYM in str(self) \
-               or VariableTerm.QUERY_SYM in str(self)
+        return VariableTerm.VARIABLE_SYM in str(self) or VariableTerm.QUERY_SYM in str(
+            self
+        )
 
 
 class VariableTerm(Term):
@@ -172,10 +192,7 @@ class VariableTerm(Term):
     VARIABLE_SYM = "#"
     QUERY_SYM = "?"
 
-    def __init__(self,
-                 variable_name: str,
-                 variable_type: Type,
-                 dependency_list=None):
+    def __init__(self, variable_name: str, variable_type: Type, dependency_list=None):
         """
 
         :param variable_string: variable name
@@ -185,7 +202,11 @@ class VariableTerm(Term):
         # todo parse variable terms from input strings
         self.variable_name = variable_name
         self.variable_type = variable_type
-        self.variable_symbol = VariableTerm.QUERY_SYM if variable_type == VariableTerm.Type.Query else VariableTerm.VARIABLE_SYM
+        self.variable_symbol = (
+            VariableTerm.QUERY_SYM
+            if variable_type == VariableTerm.Type.Query
+            else VariableTerm.VARIABLE_SYM
+        )
         self.dependency_list = dependency_list
         super().__init__(self._create_term_string())
 
@@ -194,14 +215,20 @@ class VariableTerm(Term):
         if self.dependency_list is not None:
             dependency_string = "("
             for dependency in self.dependency_list:
-                dependency_string = dependency_string + str(dependency) + NALSyntax.StatementSyntax.TermDivider.value
+                dependency_string = (
+                    dependency_string
+                    + str(dependency)
+                    + NALSyntax.StatementSyntax.TermDivider.value
+                )
 
             dependency_string = dependency_string[0:-1] + ")"
 
         return self.variable_symbol + self.variable_name + dependency_string
 
     @classmethod
-    def from_string(cls, variable_name: str, variable_type_symbol: str, dependency_list_string: str):
+    def from_string(
+        cls, variable_name: str, variable_type_symbol: str, dependency_list_string: str
+    ):
         # parse dependency list
         dependency_list = None
 
@@ -221,7 +248,8 @@ class VariableTerm(Term):
         return cls(variable_name, type, dependency_list)
 
     def _calculate_syntactic_complexity(self):
-        if self.syntactic_complexity is not None: return self.syntactic_complexity
+        if self.syntactic_complexity is not None:
+            return self.syntactic_complexity
         if self.dependency_list is None:
             return 1
         else:
@@ -230,17 +258,18 @@ class VariableTerm(Term):
 
 class AtomicTerm(Term):
     """
-        An atomic term, named by a valid word.
+    An atomic term, named by a valid word.
     """
 
-    def __init__(self,
-                 term_string):
+    def __init__(self, term_string):
         """
         Input:
             term_string = name of the term
         """
 
-        assert (AtomicTerm.is_valid_term(term_string)), term_string + " is not a valid Atomic Term name."
+        assert AtomicTerm.is_valid_term(term_string), (
+            term_string + " is not a valid Atomic Term name."
+        )
         super().__init__(term_string)
 
     def _calculate_syntactic_complexity(self):
@@ -249,20 +278,21 @@ class AtomicTerm(Term):
     @classmethod
     def is_valid_term(cls, term_string):
         for char in term_string:
-            if char not in NALSyntax.valid_term_chars: return False
+            if char not in NALSyntax.valid_term_chars:
+                return False
         return True
 
 
 class CompoundTerm(Term):
     """
-        A term that contains multiple atomic subterms connected by a connector.
+    A term that contains multiple atomic subterms connected by a connector.
 
-        (Connector T1, T2, ..., Tn)
+    (Connector T1, T2, ..., Tn)
     """
 
-    def __init__(self, subterms: [Term],
-                 term_connector: NALSyntax.TermConnector,
-                 intervals=None):
+    def __init__(
+        self, subterms: [Term], term_connector: NALSyntax.TermConnector, intervals=None
+    ):
         """
         Input:
             subterms: array of immediate subterms
@@ -272,7 +302,9 @@ class CompoundTerm(Term):
 
             intervals: array of time intervals between statements (only used for sequential conjunction)
         """
-        assert term_connector is not None,"ERROR: A compound term needs a term connector."
+        assert (
+            term_connector is not None
+        ), "ERROR: A compound term needs a term connector."
 
         self.subterms: [Term] = np.array(subterms)
         self.connector = term_connector
@@ -289,7 +321,7 @@ class CompoundTerm(Term):
                     # todo accept intervals from input
                     self.intervals = [1] * (len(subterms) - 1)
 
-                #self.string_with_interval = self._create_term_string_with_interval()
+                # self.string_with_interval = self._create_term_string_with_interval()
             elif term_connector == NALSyntax.TermConnector.ParallelConjunction:
                 # (A &| B ...)
                 # interval of 0
@@ -301,8 +333,12 @@ class CompoundTerm(Term):
                 subterms.sort(key=lambda t: str(t))
 
             # check if it's a set
-            is_extensional_set = (term_connector == NALSyntax.TermConnector.ExtensionalSetStart)
-            is_intensional_set = (term_connector == NALSyntax.TermConnector.IntensionalSetStart)
+            is_extensional_set = (
+                term_connector == NALSyntax.TermConnector.ExtensionalSetStart
+            )
+            is_intensional_set = (
+                term_connector == NALSyntax.TermConnector.IntensionalSetStart
+            )
             is_set = is_extensional_set or is_intensional_set
 
             # handle multi-component sets
@@ -312,8 +348,12 @@ class CompoundTerm(Term):
 
                 for subterm in subterms:
                     # decompose the set into an intersection of singleton sets
-                    singleton_set_subterm = CompoundTerm(subterms=[subterm],
-                                                         term_connector=NALSyntax.TermConnector.get_set_end_connector_from_set_start_connector(term_connector))
+                    singleton_set_subterm = CompoundTerm(
+                        subterms=[subterm],
+                        term_connector=NALSyntax.TermConnector.get_set_end_connector_from_set_start_connector(
+                            term_connector
+                        ),
+                    )
 
                     singleton_set_subterms.append(singleton_set_subterm)
 
@@ -361,7 +401,7 @@ class CompoundTerm(Term):
         return self.is_intensional_set() or self.is_extensional_set()
 
     def get_term_string_with_interval(self):
-        return None #self.string_with_interval
+        return None  # self.string_with_interval
 
     def _create_term_string_with_interval(self):
         if self.is_set():
@@ -371,16 +411,34 @@ class CompoundTerm(Term):
 
         for i in range(len(self.subterms)):
             subterm = self.subterms[i]
-            string += subterm.get_term_string() + NALSyntax.StatementSyntax.TermDivider.value
-            if self.connector == NALSyntax.TermConnector.SequentialConjunction and i < len(self.intervals):
-                string = string + str(self.intervals[i]) + NALSyntax.StatementSyntax.TermDivider.value
+            string += (
+                subterm.get_term_string() + NALSyntax.StatementSyntax.TermDivider.value
+            )
+            if (
+                self.connector == NALSyntax.TermConnector.SequentialConjunction
+                and i < len(self.intervals)
+            ):
+                string = (
+                    string
+                    + str(self.intervals[i])
+                    + NALSyntax.StatementSyntax.TermDivider.value
+                )
 
         string = string[:-1]  # remove the final term divider
 
         if self.is_set():
-            return string + NALSyntax.TermConnector.get_set_end_connector_from_set_start_connector(self.connector).value
+            return (
+                string
+                + NALSyntax.TermConnector.get_set_end_connector_from_set_start_connector(
+                    self.connector
+                ).value
+            )
         else:
-            return NALSyntax.StatementSyntax.CompoundStart.value + string + NALSyntax.StatementSyntax.CompoundEnd.value
+            return (
+                NALSyntax.StatementSyntax.CompoundStart.value
+                + string
+                + NALSyntax.StatementSyntax.CompoundEnd.value
+            )
 
     def _create_term_string(self):
         if self.is_set():
@@ -390,23 +448,36 @@ class CompoundTerm(Term):
 
         for i in range(len(self.subterms)):
             subterm = self.subterms[i]
-            string = string + subterm.get_term_string() + NALSyntax.StatementSyntax.TermDivider.value
+            string = (
+                string
+                + subterm.get_term_string()
+                + NALSyntax.StatementSyntax.TermDivider.value
+            )
 
         string = string[:-1]  # remove the final term divider
 
         if self.is_set():
-            return string + NALSyntax.TermConnector.get_set_end_connector_from_set_start_connector(
-                self.connector).value
+            return (
+                string
+                + NALSyntax.TermConnector.get_set_end_connector_from_set_start_connector(
+                    self.connector
+                ).value
+            )
         else:
-            return NALSyntax.StatementSyntax.CompoundStart.value + string + NALSyntax.StatementSyntax.CompoundEnd.value
+            return (
+                NALSyntax.StatementSyntax.CompoundStart.value
+                + string
+                + NALSyntax.StatementSyntax.CompoundEnd.value
+            )
 
     def _calculate_syntactic_complexity(self):
         """
-            Recursively calculate the syntactic complexity of
-            the compound term. The connector adds 1 complexity,
-            and the subterms syntactic complexities are summed as well.
+        Recursively calculate the syntactic complexity of
+        the compound term. The connector adds 1 complexity,
+        and the subterms syntactic complexities are summed as well.
         """
-        if self.syntactic_complexity is not None: return self.syntactic_complexity
+        if self.syntactic_complexity is not None:
+            return self.syntactic_complexity
         count = 0
         if self.connector is not None:
             count = 1  # the term connector
@@ -417,48 +488,68 @@ class CompoundTerm(Term):
     @classmethod
     def from_string(cls, compound_term_string):
         """
-            Create a compound term from a string representing a compound term
+        Create a compound term from a string representing a compound term
         """
         compound_term_string = compound_term_string.replace(" ", "")
-        subterms, connector, intervals = cls.parse_toplevel_subterms_and_connector(compound_term_string)
+        subterms, connector, intervals = cls.parse_toplevel_subterms_and_connector(
+            compound_term_string
+        )
         return cls(subterms, connector, intervals=intervals)
 
     @classmethod
     def parse_toplevel_subterms_and_connector(cls, compound_term_string):
         """
-            Parse out all top-level subterms from a string representing a compound term
+        Parse out all top-level subterms from a string representing a compound term
 
-            compound_term_string - a string representing a compound term
+        compound_term_string - a string representing a compound term
         """
         compound_term_string = compound_term_string.replace(" ", "")
         subterms = []
         intervals = []
-        internal_string = compound_term_string[1:-1]  # string with no outer parentheses () or set brackets [], {}
+        internal_string = compound_term_string[
+            1:-1
+        ]  # string with no outer parentheses () or set brackets [], {}
 
         # check the first char for intensional/extensional set [a,b], {a,b}
         # also check for array @
-        connector = NALSyntax.TermConnector.get_term_connector_from_string(compound_term_string[0])
+        connector = NALSyntax.TermConnector.get_term_connector_from_string(
+            compound_term_string[0]
+        )
         if connector is None:
             # otherwise check the first 2 chars for regular Term/Statement connectors
             if internal_string[1] == NALSyntax.StatementSyntax.TermDivider.value:
                 connector_string = internal_string[0]  # Term connector
             else:
                 connector_string = internal_string[0:2]  # Statement connector
-            connector = NALSyntax.TermConnector.get_term_connector_from_string(connector_string)
+            connector = NALSyntax.TermConnector.get_term_connector_from_string(
+                connector_string
+            )
 
-            assert (internal_string[
-                        len(
-                            connector.value)] == NALSyntax.StatementSyntax.TermDivider.value), "Connector not followed by comma in CompoundTerm string " + compound_term_string
-            internal_string = internal_string[len(connector.value) + 1:]
+            assert (
+                internal_string[len(connector.value)]
+                == NALSyntax.StatementSyntax.TermDivider.value
+            ), (
+                "Connector not followed by comma in CompoundTerm string "
+                + compound_term_string
+            )
+            internal_string = internal_string[len(connector.value) + 1 :]
 
-        assert (connector is not None), "Connector could not be parsed from CompoundTerm string."
+        assert (
+            connector is not None
+        ), "Connector could not be parsed from CompoundTerm string."
 
         depth = 0
         subterm_string = ""
         for i, c in enumerate(internal_string):
-            if c == NALSyntax.StatementSyntax.CompoundStart.value or NALSyntax.TermConnector.is_set_bracket_start(c):
+            if (
+                c == NALSyntax.StatementSyntax.CompoundStart.value
+                or NALSyntax.TermConnector.is_set_bracket_start(c)
+            ):
                 depth += 1
-            elif c == NALSyntax.StatementSyntax.CompoundEnd.value or NALSyntax.TermConnector.is_set_bracket_end(c):
+            elif (
+                c == NALSyntax.StatementSyntax.CompoundEnd.value
+                or NALSyntax.TermConnector.is_set_bracket_end(c)
+            ):
                 depth -= 1
 
             if c == NALSyntax.StatementSyntax.TermDivider.value and depth == 0:
@@ -477,30 +568,29 @@ class CompoundTerm(Term):
         return subterms, connector, intervals
 
     def get_negated_term(self):
-        if self.connector == NALSyntax.TermConnector.Negation and len(self.subterms) == 1:
+        if (
+            self.connector == NALSyntax.TermConnector.Negation
+            and len(self.subterms) == 1
+        ):
             return self.subterms[0]
         else:
             return CompoundTerm(
-                subterms=[self],
-                term_connector=NALSyntax.TermConnector.Negation)
+                subterms=[self], term_connector=NALSyntax.TermConnector.Negation
+            )
 
 
 class StatementTerm(Term):
     """
-        <subject><copula><predicate>
+    <subject><copula><predicate>
 
-        A special kind of compound term with a subject, predicate, and copula.
+    A special kind of compound term with a subject, predicate, and copula.
 
-        (P --> Q)
+    (P --> Q)
 
 
     """
 
-    def __init__(self,
-                 subject_term: Term,
-                 predicate_term,
-                 copula,
-                 interval=0):
+    def __init__(self, subject_term: Term, predicate_term, copula, interval=0):
         """
         :param subject_term:
         :param predicate_term:
@@ -530,18 +620,19 @@ class StatementTerm(Term):
     @classmethod
     def from_string(cls, statement_string):
         """
-            Parameter: statement_string - String of NAL syntax "(term copula term)"
+        Parameter: statement_string - String of NAL syntax "(term copula term)"
 
-            Returns: top-level subject term, predicate term, copula, copula index
+        Returns: top-level subject term, predicate term, copula, copula index
         """
         statement_string = statement_string.replace(" ", "")
         # get copula
         copula, copula_idx = NALSyntax.Copula.get_top_level_copula(statement_string)
-        assert (copula is not None), "Copula not found. Exiting.."
+        assert copula is not None, "Copula not found. Exiting.."
 
         subject_str = statement_string[1:copula_idx]  # get subject string
         predicate_str = statement_string[
-                        copula_idx + len(copula.value):len(statement_string) - 1]  # get predicate string
+            copula_idx + len(copula.value) : len(statement_string) - 1
+        ]  # get predicate string
 
         interval = 0
         if not NALSyntax.Copula.is_first_order(copula):
@@ -549,20 +640,23 @@ class StatementTerm(Term):
             if last_element[0:-1].isdigit():
                 interval = int(last_element[0:-1])
 
-        statement_term = StatementTerm(subject_term=from_string(subject_str),
-                                       predicate_term=from_string(predicate_str),
-                                       copula=copula,
-                                       interval=interval)
+        statement_term = StatementTerm(
+            subject_term=from_string(subject_str),
+            predicate_term=from_string(predicate_str),
+            copula=copula,
+            interval=interval,
+        )
 
         return statement_term
 
     def _calculate_syntactic_complexity(self):
         """
-            Recursively calculate the syntactic complexity of
-            the compound term. The connector adds 1 complexity,
-            and the subterms syntactic complexities are summed as well.
+        Recursively calculate the syntactic complexity of
+        the compound term. The connector adds 1 complexity,
+        and the subterms syntactic complexities are summed as well.
         """
-        if self.syntactic_complexity is not None: return self.syntactic_complexity
+        if self.syntactic_complexity is not None:
+            return self.syntactic_complexity
         count = 1  # the copula
         for subterm in self.subterms:
             count = count + subterm._calculate_syntactic_complexity()
@@ -589,64 +683,83 @@ class StatementTerm(Term):
 
     def _create_term_string_with_interval(self):
         """
-            Returns the term's string with intervals.
+        Returns the term's string with intervals.
 
-            returns: (Subject copula Predicate)
+        returns: (Subject copula Predicate)
         """
-        if isinstance(self.get_subject_term(), CompoundTerm) and self.get_subject_term().connector == NALSyntax.TermConnector.SequentialConjunction:
-            string = NALSyntax.StatementSyntax.Start.value + \
-                     self.get_subject_term().get_term_string_with_interval()
+        if (
+            isinstance(self.get_subject_term(), CompoundTerm)
+            and self.get_subject_term().connector
+            == NALSyntax.TermConnector.SequentialConjunction
+        ):
+            string = (
+                NALSyntax.StatementSyntax.Start.value
+                + self.get_subject_term().get_term_string_with_interval()
+            )
         else:
-            string = NALSyntax.StatementSyntax.Start.value + \
-                     self.get_subject_term().get_term_string()
+            string = (
+                NALSyntax.StatementSyntax.Start.value
+                + self.get_subject_term().get_term_string()
+            )
 
         if not self.is_first_order() and self.interval > 0:
-            string = string[:-1] + \
-                     NALSyntax.StatementSyntax.TermDivider.value + \
-                     str(self.interval) + \
-                     string[-1]
+            string = (
+                string[:-1]
+                + NALSyntax.StatementSyntax.TermDivider.value
+                + str(self.interval)
+                + string[-1]
+            )
 
         string += " " + self.get_copula_string() + " "
 
-        string += self.get_predicate_term().get_term_string() + \
-                  NALSyntax.StatementSyntax.End.value
+        string += (
+            self.get_predicate_term().get_term_string()
+            + NALSyntax.StatementSyntax.End.value
+        )
 
         return string
 
     def _create_term_string(self):
         """
-            Returns the term's string.
+        Returns the term's string.
 
-            This is very important, because terms are compared for equality using this string.
+        This is very important, because terms are compared for equality using this string.
 
-            returns: (Subject copula Predicate)
+        returns: (Subject copula Predicate)
         """
-        string = NALSyntax.StatementSyntax.Start.value + \
-                 self.get_subject_term().get_term_string()
+        string = (
+            NALSyntax.StatementSyntax.Start.value
+            + self.get_subject_term().get_term_string()
+        )
 
         string += " " + self.get_copula_string() + " "
 
-        string += self.get_predicate_term().get_term_string() + \
-                  NALSyntax.StatementSyntax.End.value
+        string += (
+            self.get_predicate_term().get_term_string()
+            + NALSyntax.StatementSyntax.End.value
+        )
 
         return string
 
     def contains_op(self):
         contains = self.is_op()
         if not self.is_first_order():
-            contains = contains or \
-                       self.get_subject_term().contains_op() or \
-                       self.get_predicate_term().contains_op()
+            contains = (
+                contains
+                or self.get_subject_term().contains_op()
+                or self.get_predicate_term().contains_op()
+            )
         return contains
 
     def is_op(self):
         return self.is_operation
 
     def calculate_is_operation(self):
-        return isinstance(self.get_subject_term(), CompoundTerm) \
-               and self.get_subject_term().connector == NALSyntax.TermConnector.Product \
-               and self.get_subject_term().subterms[
-                   0] == Global.Global.TERM_SELF  # product and first term is self means this is an operation
+        return (
+            isinstance(self.get_subject_term(), CompoundTerm)
+            and self.get_subject_term().connector == NALSyntax.TermConnector.Product
+            and self.get_subject_term().subterms[0] == Global.Global.TERM_SELF
+        )  # product and first term is self means this is an operation
 
     def is_first_order(self):
         return NALSyntax.Copula.is_first_order(self.copula)
@@ -656,7 +769,8 @@ class StatementTerm(Term):
 
     def is_positive(self):
         term_concept = Global.Global.NARS.memory.peek_concept(self)
-        if term_concept is None: return False
+        if term_concept is None:
+            return False
         # todo higher order statements?
         return term_concept.is_positive()
 
@@ -666,30 +780,28 @@ class StatementTerm(Term):
 
     def get_negated_term(self):
         return CompoundTerm(
-            subterms=[self],
-            term_connector=NALSyntax.TermConnector.Negation)
+            subterms=[self], term_connector=NALSyntax.TermConnector.Negation
+        )
 
 
 class SpatialTerm(CompoundTerm):
     """
-        Higher-order Compound with a spatial component.
+    Higher-order Compound with a spatial component.
     """
 
-    def __init__(self,
-                 spatial_subterms,
-                 connector):
+    def __init__(self, spatial_subterms, connector):
         """
-            :param spatial_subterms: a spatial multi-dimensional array of first-order StatementTerms (or their negations).
+        :param spatial_subterms: a spatial multi-dimensional array of first-order StatementTerms (or their negations).
 
-            todo: support more than 2D
+        todo: support more than 2D
         """
         self.dimensions = spatial_subterms.shape
         self.center = None
-        self.of_spatial_terms = isinstance(spatial_subterms.flat[0], SpatialTerm) # flat does not copy the array
-        assert len(self.dimensions) == 2,"ERROR: Array Term only supports 2D arrays"
-        CompoundTerm.__init__(self,
-                              subterms=spatial_subterms,
-                              term_connector=connector)
+        self.of_spatial_terms = isinstance(
+            spatial_subterms.flat[0], SpatialTerm
+        )  # flat does not copy the array
+        assert len(self.dimensions) == 2, "ERROR: Array Term only supports 2D arrays"
+        CompoundTerm.__init__(self, subterms=spatial_subterms, term_connector=connector)
         # self.subterms = None
 
     def _create_term_string(self):
@@ -697,50 +809,51 @@ class SpatialTerm(CompoundTerm):
 
         :return:
         """
-        string = ''
+        string = ""
         for indices, element_term in np.ndenumerate(self.subterms):
-            string += str(indices[0]) + str(element_term) + str(indices[1]) + '_'
+            string += str(indices[0]) + str(element_term) + str(indices[1]) + "_"
 
-        return NALSyntax.StatementSyntax.Start.value \
-                + self.connector.value \
-                + string \
-                + NALSyntax.StatementSyntax.End.value
-
-   # def img_from_term(self):
-
-
-    # @classmethod
-    # def from_string(cls,string):
-    #     # TODO
-    #     dimension_split_idx_start = string.find(cls.ARRAY_CARTESIAN_PRODUCT)
-    #     dimension_split_idx_end = string.rfind(cls.ARRAY_CARTESIAN_PRODUCT)
-    #     y_length, x_length = string[0:dimension_split_idx_start], string[dimension_split_idx_start+1:dimension_split_idx_end]
-    #
-    #     def parse_spatial_subterms_from_string(*indices):
-    #         row, col = tuple([int(var) for var in indices])
-    #         element_char = string[dimension_split_idx_end + 1 + x_length * row + col]
-    #
-    #         subject_name = str(row) + "_" + str(col)
-    #         subject_term = AtomicTerm(term_string=subject_name)
-    #         positive_statement = StatementTerm(subject_term=subject_term,
-    #                                                    predicate_term=predicate_term,
-    #                                                    copula=NALSyntax.Copula.Inheritance)
-    #         if element_char == cls.ARRAY_POSITIVE_ELEMENT:
-    #             element = positive_statement
-    #         elif element_char == cls.ARRAY_NEGATIVE_ELEMENT:
-    #             element = NALGrammar.Terms.CompoundTerm([positive_statement],
-    #                                                       term_connector=NALSyntax.TermConnector.Negation)
-    #         else:
-    #             assert False,"ERROR: Invalid character in Array string"
-    #
-    #         if isinstance(element_term, StatementTerm):
-    #             string += "P"
-    #         elif isinstance(element_term, CompoundTerm) \
-    #                 and element_term.connector == NALSyntax.TermConnector.Negation:
-    #             string += "N"
-    #         return NALInferenceRules.TruthValueFunctions.Expectation(f, c)
-    #
-    #     func_vectorized = np.vectorize(parse_spatial_subterms_from_string)
-    #     expectation_array = np.fromfunction(function=func_vectorized, shape=(y_length, x_length))
+        return (
+            NALSyntax.StatementSyntax.Start.value
+            + self.connector.value
+            + string
+            + NALSyntax.StatementSyntax.End.value
+        )
 
 
+# def img_from_term(self):
+
+
+# @classmethod
+# def from_string(cls,string):
+#     # TODO
+#     dimension_split_idx_start = string.find(cls.ARRAY_CARTESIAN_PRODUCT)
+#     dimension_split_idx_end = string.rfind(cls.ARRAY_CARTESIAN_PRODUCT)
+#     y_length, x_length = string[0:dimension_split_idx_start], string[dimension_split_idx_start+1:dimension_split_idx_end]
+#
+#     def parse_spatial_subterms_from_string(*indices):
+#         row, col = tuple([int(var) for var in indices])
+#         element_char = string[dimension_split_idx_end + 1 + x_length * row + col]
+#
+#         subject_name = str(row) + "_" + str(col)
+#         subject_term = AtomicTerm(term_string=subject_name)
+#         positive_statement = StatementTerm(subject_term=subject_term,
+#                                                    predicate_term=predicate_term,
+#                                                    copula=NALSyntax.Copula.Inheritance)
+#         if element_char == cls.ARRAY_POSITIVE_ELEMENT:
+#             element = positive_statement
+#         elif element_char == cls.ARRAY_NEGATIVE_ELEMENT:
+#             element = NALGrammar.Terms.CompoundTerm([positive_statement],
+#                                                       term_connector=NALSyntax.TermConnector.Negation)
+#         else:
+#             assert False,"ERROR: Invalid character in Array string"
+#
+#         if isinstance(element_term, StatementTerm):
+#             string += "P"
+#         elif isinstance(element_term, CompoundTerm) \
+#                 and element_term.connector == NALSyntax.TermConnector.Negation:
+#             string += "N"
+#         return NALInferenceRules.TruthValueFunctions.Expectation(f, c)
+#
+#     func_vectorized = np.vectorize(parse_spatial_subterms_from_string)
+#     expectation_array = np.fromfunction(function=func_vectorized, shape=(y_length, x_length))

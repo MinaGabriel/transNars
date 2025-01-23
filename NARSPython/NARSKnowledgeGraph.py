@@ -13,37 +13,43 @@ entity_ID_to_name = {}
 relation_ID_to_name = {}
 
 # load all entity IDs
-with open('Benchmark/thunlp OpenKE YAGO3-10/entity2id.txt', encoding="utf8") as f:
+with open("Benchmark/thunlp OpenKE YAGO3-10/entity2id.txt", encoding="utf8") as f:
     for line in f.readlines():
         pieces = line.split("	")
-        if len(pieces) == 1: continue # skip the first line
+        if len(pieces) == 1:
+            continue  # skip the first line
         name, ID = pieces[0].rstrip(), pieces[1].rstrip()
         entity_ID_to_name[ID] = name
 
 # load all relation IDs
-with open('Benchmark/thunlp OpenKE YAGO3-10/relation2id.txt', encoding="utf8") as f:
+with open("Benchmark/thunlp OpenKE YAGO3-10/relation2id.txt", encoding="utf8") as f:
     for line in f.readlines():
         pieces = line.split("	")
-        if len(pieces) == 1: continue # skip the first line
+        if len(pieces) == 1:
+            continue  # skip the first line
         name, ID = pieces[0].rstrip(), pieces[1].rstrip()
         relation_ID_to_name[ID] = name
 
 
 def CleanString(dirty_string: str) -> str:
-    return unidecode(dirty_string
-                    .replace(",",";")
-                    .replace(r"\u0022","\""))
+    return unidecode(dirty_string.replace(",", ";").replace(r"\u0022", '"'))
+
 
 class NodeType(Enum):
-    Entity = 1,
+    Entity = (1,)
     Relation = 2
-class Node:
 
+
+class Node:
     def __init__(self, node_type: NodeType, term: Term):
         self.node_type = node_type
         self.term = term
-        self.sentences_where_node_is_subject: List[NARSPython.NALGrammar.Sentences.Sentence] = []
-        self.sentences_where_node_is_predicate: List[NARSPython.NALGrammar.Sentences.Sentence] = []
+        self.sentences_where_node_is_subject: List[
+            NARSPython.NALGrammar.Sentences.Sentence
+        ] = []
+        self.sentences_where_node_is_predicate: List[
+            NARSPython.NALGrammar.Sentences.Sentence
+        ] = []
 
 
 nodes_dict = {}
@@ -51,57 +57,88 @@ nodes_dict = {}
 # load the training set as Narsese sentences, and also create nodes
 print("Loading Training Set")
 largest_num_of_sentences_with_same_predicate = 0
-NUM_TO_LOAD = -1 # -1 to load all the training set, any other number to load a certain amount
+NUM_TO_LOAD = (
+    -1
+)  # -1 to load all the training set, any other number to load a certain amount
 total_lines = 1
-with open('Benchmark/thunlp OpenKE YAGO3-10/train2id.txt', encoding="utf8") as f:
+with open("Benchmark/thunlp OpenKE YAGO3-10/train2id.txt", encoding="utf8") as f:
     i = 0
     for line in f.readlines():
         pieces = line.split(" ")
         if len(pieces) == 1:
-            if NUM_TO_LOAD == -1: total_lines = int(pieces[0])
-            else: total_lines = NUM_TO_LOAD
-            continue # skip the first line
+            if NUM_TO_LOAD == -1:
+                total_lines = int(pieces[0])
+            else:
+                total_lines = NUM_TO_LOAD
+            continue  # skip the first line
         # turn the numeric IDs into strings
-        subjectID, predicateID, relationID = pieces[0].rstrip(), pieces[1].rstrip(), pieces[2].rstrip()
-        subject, object, relation = entity_ID_to_name[subjectID], entity_ID_to_name[predicateID], relation_ID_to_name[relationID]
+        subjectID, predicateID, relationID = (
+            pieces[0].rstrip(),
+            pieces[1].rstrip(),
+            pieces[2].rstrip(),
+        )
+        subject, object, relation = (
+            entity_ID_to_name[subjectID],
+            entity_ID_to_name[predicateID],
+            relation_ID_to_name[relationID],
+        )
         subject = CleanString(str(subject))
         object = CleanString(str(object))
         relation = CleanString(str(relation))
 
         # create NAL belief
-        #NAL_judgment = NARSPython.NALGrammar.Sentences.new_sentence_from_string("<<*," + subject + "," + object + ">-->" + relation + ">.")
-        NAL_judgment = NARSPython.NALGrammar.Sentences.new_sentence_from_string("<" + subject + "-->" + "(/," + relation + ",_," + object + ")>.")
-        #print(NAL_judgment)
+        # NAL_judgment = NARSPython.NALGrammar.Sentences.new_sentence_from_string("<<*," + subject + "," + object + ">-->" + relation + ">.")
+        NAL_judgment = NARSPython.NALGrammar.Sentences.new_sentence_from_string(
+            "<" + subject + "-->" + "(/," + relation + ",_," + object + ")>."
+        )
+        # print(NAL_judgment)
 
         NAL_subject_term = NAL_judgment.statement.get_subject_term()
         NAL_predicate_term = NAL_judgment.statement.get_predicate_term()
 
         # create nodes for the entities if they don't exist
-        if NAL_subject_term not in nodes_dict: nodes_dict[NAL_subject_term] = Node(node_type=NodeType.Entity, term=NAL_subject_term)
-        if NAL_predicate_term not in nodes_dict: nodes_dict[NAL_predicate_term] = Node(node_type=NodeType.Entity, term=NAL_predicate_term)
+        if NAL_subject_term not in nodes_dict:
+            nodes_dict[NAL_subject_term] = Node(
+                node_type=NodeType.Entity, term=NAL_subject_term
+            )
+        if NAL_predicate_term not in nodes_dict:
+            nodes_dict[NAL_predicate_term] = Node(
+                node_type=NodeType.Entity, term=NAL_predicate_term
+            )
 
-        nodes_dict[NAL_subject_term].sentences_where_node_is_subject.append(NAL_judgment)
-        nodes_dict[NAL_predicate_term].sentences_where_node_is_predicate.append(NAL_judgment)
-        #if subject not in nodes_dict: nodes_dict[subject] = Node(node_type=NodeType.Entity, name=subject)
-        #if object not in nodes_dict: nodes_dict[object] = Node(node_type=NodeType.Entity, name=object)
-        #if relation not in nodes_dict: nodes_dict[relation] = Node(node_type=NodeType.Relation, name=relation)
+        nodes_dict[NAL_subject_term].sentences_where_node_is_subject.append(
+            NAL_judgment
+        )
+        nodes_dict[NAL_predicate_term].sentences_where_node_is_predicate.append(
+            NAL_judgment
+        )
+        # if subject not in nodes_dict: nodes_dict[subject] = Node(node_type=NodeType.Entity, name=subject)
+        # if object not in nodes_dict: nodes_dict[object] = Node(node_type=NodeType.Entity, name=object)
+        # if relation not in nodes_dict: nodes_dict[relation] = Node(node_type=NodeType.Relation, name=relation)
 
         i += 1
         print("Status: " + str(i) + "/" + str(total_lines))
-        if NUM_TO_LOAD != -1 and i >= NUM_TO_LOAD: break
+        if NUM_TO_LOAD != -1 and i >= NUM_TO_LOAD:
+            break
 
 
 def AddResultToKnowledgeBase(result: NARSPython.NALGrammar.Sentences.Judgment):
     if not IsJudgmentAlreadyKnownFromKnowledgeGraph(result):
-        nodes_dict[result.statement.get_predicate_term()].sentences_where_node_is_predicate.append(result)
-        nodes_dict[result.statement.get_subject_term()].sentences_where_node_is_subject.append(result)
+        nodes_dict[
+            result.statement.get_predicate_term()
+        ].sentences_where_node_is_predicate.append(result)
+        nodes_dict[
+            result.statement.get_subject_term()
+        ].sentences_where_node_is_subject.append(result)
+
 
 def DeriveAnswers(question: NARSPython.NALGrammar.Sentences.Question):
     results = []
 
     # first, get a known answer (either from the knowledge graph, or potentially derived)
     question_predicate = question.statement.get_predicate_term()
-    if question_predicate not in nodes_dict: return None
+    if question_predicate not in nodes_dict:
+        return None
     # num_of_answers = len(nodes_dict[question_predicate].sentences_where_node_is_predicate)
     # random_answer_idx = random.randrange(0,num_of_answers)
     # random_answer = nodes_dict[question_predicate].sentences_where_node_is_predicate[random_answer_idx]
@@ -114,8 +151,11 @@ def DeriveAnswers(question: NARSPython.NALGrammar.Sentences.Question):
 
         MAX_RELATIONS = 10
         relations = 0
-        for sentence_with_new_relation in nodes_dict[answer_subject].sentences_where_node_is_subject:
-            if sentence_with_new_relation.statement == answer.statement: continue
+        for sentence_with_new_relation in nodes_dict[
+            answer_subject
+        ].sentences_where_node_is_subject:
+            if sentence_with_new_relation.statement == answer.statement:
+                continue
             # now, use the relation predicate to find a sentence with that relation but a *different* subject
             # random_relation_predicate = random_relation.statement.get_predicate_term()
             # num_of_others = len(nodes_dict[random_relation_predicate].sentences_where_node_is_predicate)
@@ -130,33 +170,44 @@ def DeriveAnswers(question: NARSPython.NALGrammar.Sentences.Question):
             MAX_DERIVATIONS = 10
             derivations = 0
 
-            for other_subject in nodes_dict[sentence_with_new_relation.statement.get_predicate_term()].sentences_where_node_is_predicate:
+            for other_subject in nodes_dict[
+                sentence_with_new_relation.statement.get_predicate_term()
+            ].sentences_where_node_is_predicate:
                 j1 = sentence_with_new_relation
                 j2 = other_subject
-                if j1.statement == j2.statement: continue
+                if j1.statement == j2.statement:
+                    continue
 
                 similarity = NARSPython.NALInferenceRules.Syllogistic.Comparison(j1, j2)
 
-                result = NARSPython.NALInferenceRules.Syllogistic.Analogy(answer, similarity)
+                result = NARSPython.NALInferenceRules.Syllogistic.Analogy(
+                    answer, similarity
+                )
                 AddResultToKnowledgeBase(result)
                 results.append(result)
                 derivations += 1
-                if derivations == MAX_DERIVATIONS: break
+                if derivations == MAX_DERIVATIONS:
+                    break
 
             relations += 1
-            if relations == MAX_RELATIONS: break
+            if relations == MAX_RELATIONS:
+                break
         answers += 1
-        if answers == MAX_ANSWERS: break
+        if answers == MAX_ANSWERS:
+            break
     # compute a similarity relation
     # now we have 2 sentences with different subjects, but the same predicate, so we compute
     # {J1=<P-->M>,J2=<S-->M>}:- <S<->P> (F'_comparison(j1,j2), aka F_comparison(j2,j1))
 
-
     return results
 
 
-def IsJudgmentAlreadyKnownFromKnowledgeGraph(judgment: NARSPython.NALGrammar.Sentences.Judgment):
-    for sentence in nodes_dict[judgment.statement.get_subject_term()].sentences_where_node_is_subject:
+def IsJudgmentAlreadyKnownFromKnowledgeGraph(
+    judgment: NARSPython.NALGrammar.Sentences.Judgment,
+):
+    for sentence in nodes_dict[
+        judgment.statement.get_subject_term()
+    ].sentences_where_node_is_subject:
         if judgment.statement == sentence.statement:
             return True
     return False
@@ -166,35 +217,52 @@ def IsJudgmentAlreadyKnownFromKnowledgeGraph(judgment: NARSPython.NALGrammar.Sen
 print("Trying Test Set")
 score = 0
 total = 0
-with open('Benchmark/thunlp OpenKE YAGO3-10/test2id.txt', encoding="utf8") as f:
+with open("Benchmark/thunlp OpenKE YAGO3-10/test2id.txt", encoding="utf8") as f:
     line_count = 0
     for line in f.readlines():
         pieces = line.split(" ")
         if len(pieces) == 1:
             total_lines = pieces[0]
-            continue # skip the first line
+            continue  # skip the first line
         # turn the numeric IDs into strings
-        subjectID, predicateID, relationID = pieces[0].rstrip(), pieces[1].rstrip(), pieces[2].rstrip()
-        subject, object, relation = entity_ID_to_name[subjectID], entity_ID_to_name[predicateID], relation_ID_to_name[relationID]
+        subjectID, predicateID, relationID = (
+            pieces[0].rstrip(),
+            pieces[1].rstrip(),
+            pieces[2].rstrip(),
+        )
+        subject, object, relation = (
+            entity_ID_to_name[subjectID],
+            entity_ID_to_name[predicateID],
+            relation_ID_to_name[relationID],
+        )
         subject = CleanString(str(subject))
         object = CleanString(str(object))
         relation = CleanString(str(relation))
 
-        ground_truth_answer = NARSPython.NALGrammar.Sentences.new_sentence_from_string("<" + subject + "-->" + "(/," + relation + ",_," + object + ")>.")
-        #print(answer)
+        ground_truth_answer = NARSPython.NALGrammar.Sentences.new_sentence_from_string(
+            "<" + subject + "-->" + "(/," + relation + ",_," + object + ")>."
+        )
+        # print(answer)
 
-        question = NARSPython.NALGrammar.Sentences.new_sentence_from_string("< ?x -->" + "(/," + relation + ",_," + object + ")>?")
+        question = NARSPython.NALGrammar.Sentences.new_sentence_from_string(
+            "< ?x -->" + "(/," + relation + ",_," + object + ")>?"
+        )
         NAL_predicate_term = question.statement.get_predicate_term()
 
-        print(str(line_count) + "/" + str(total_lines) + ": " +  str(question))
-
+        print(str(line_count) + "/" + str(total_lines) + ": " + str(question))
 
         if NAL_predicate_term not in nodes_dict:
             print("This predicate was not found in the graph")
         else:
-            print("In the Knowledge Graph, there are " + str(len(nodes_dict[NAL_predicate_term].sentences_where_node_is_predicate))
-                  + " sentences with this predicate.")
-
+            print(
+                "In the Knowledge Graph, there are "
+                + str(
+                    len(
+                        nodes_dict[NAL_predicate_term].sentences_where_node_is_predicate
+                    )
+                )
+                + " sentences with this predicate."
+            )
 
         correct_answer_found = False
         results = DeriveAnswers(question)
@@ -210,9 +278,10 @@ with open('Benchmark/thunlp OpenKE YAGO3-10/test2id.txt', encoding="utf8") as f:
 
                 i += 1
 
-            if correct_answer_found: score += 1
+            if correct_answer_found:
+                score += 1
 
         line_count += 1
         total += 1
 
-print("TOTAL ACCURACY: " + str(score*100/total) + "%")
+print("TOTAL ACCURACY: " + str(score * 100 / total) + "%")
